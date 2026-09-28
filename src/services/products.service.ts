@@ -99,6 +99,33 @@ export const productsService = {
     return data as unknown as Product;
   },
 
+  async bulkCreate(orgId: string, items: ProductInput[]): Promise<Product[]> {
+    if (items.length === 0) return [];
+
+    if (isLocalStorageMode()) {
+      return items.map(item => localDb.createProduct(orgId, item as any));
+    }
+
+    const records = items.map(item => ({
+      organization_id: orgId,
+      name: item.name,
+      sku: item.sku || null,
+      category: item.category || 'General',
+      description: item.description || null,
+      cost: Number(item.cost) || 0,
+      selling_price: Number(item.selling_price) || 0,
+      status: item.status || 'ACTIVE',
+    }));
+
+    const { data, error } = await supabase
+      .from('products')
+      .insert(records)
+      .select();
+
+    if (error) throw error;
+    return (data || []) as unknown as Product[];
+  },
+
   async update(id: string, input: Partial<ProductInput>): Promise<Product> {
     if (isLocalStorageMode()) {
       return localDb.update<Product>('products', id, input as any);

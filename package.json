@@ -1,13 +1,19 @@
 {
-  "name": "new-folder--5-",
+  "name": "jvecom-sales-panel",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "description": "SalesOS — Sales Management & CRM Platform by JVECOM",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:prod": "NODE_ENV=production tsc -b && vite build --mode production",
+    "preview": "vite preview",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "supabase db push",
+    "db:reset": "supabase db reset",
+    "db:types": "supabase gen types typescript --project-id awhqeflvyxsrrjakgplk > src/types/database.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -47,6 +53,7 @@
     "react-router-dom": "^7.18.4",
     "recharts": "^3.10.1",
     "tailwind-merge": "^3.7.0",
+    "xlsx": "^0.18.5",
     "zod": "^3.25.76"
   },
   "devDependencies": {

@@ -91,7 +91,8 @@ BEGIN
   ON CONFLICT (id) DO NOTHING;
 
   -- 5. Products
-  INSERT INTO products (id, organization_id, name, sku, category, description, cost_price, selling_price, status)
+  -- Schema column is "cost" not "cost_price"
+  INSERT INTO products (id, organization_id, name, sku, category, description, cost, selling_price, status)
   VALUES
     (v_prod_python, v_org_id, 'Full-Stack Python Bootcamp', 'SKU-PY-01', 'Software Development', 'Comprehensive 6-month Python, Django, React live bootcamp', 15000, 35000, 'ACTIVE'),
     (v_prod_ai, v_org_id, 'AI & GenAI Masterclass', 'SKU-AI-02', 'Data & AI', 'Cutting-edge LLM engineering, LangChain, RAG architecture masterclass', 22000, 65000, 'ACTIVE'),
@@ -100,13 +101,14 @@ BEGIN
   ON CONFLICT (id) DO NOTHING;
 
   -- 6. Gamification Levels
-  INSERT INTO levels (organization_id, name, min_xp, level_order, badge_color)
+  -- Schema has "icon" not "badge_color"
+  INSERT INTO levels (organization_id, name, min_xp, level_order, icon)
   VALUES
-    (v_org_id, 'Rookie', 0, 1, '#94a3b8'),
-    (v_org_id, 'Achiever', 1000, 2, '#3b82f6'),
-    (v_org_id, 'Closer', 2500, 3, '#10b981'),
-    (v_org_id, 'Top Gun', 5000, 4, '#8b5cf6'),
-    (v_org_id, 'Legend', 10000, 5, '#f59e0b')
+    (v_org_id, 'Rookie', 0, 1, '🥉'),
+    (v_org_id, 'Achiever', 1000, 2, '🥈'),
+    (v_org_id, 'Closer', 2500, 3, '🥇'),
+    (v_org_id, 'Top Gun', 5000, 4, '💎'),
+    (v_org_id, 'Legend', 10000, 5, '👑')
   ON CONFLICT DO NOTHING;
 
   -- 7. Gamification Achievements
@@ -120,19 +122,21 @@ BEGIN
   ON CONFLICT DO NOTHING;
 
   -- 8. XP Rules
-  INSERT INTO xp_rules (organization_id, action, description, reward_points, is_active)
+  -- Schema requires "name" column
+  INSERT INTO xp_rules (organization_id, name, action, description, reward_points, is_active)
   VALUES
-    (v_org_id, 'SALE_QUALIFIED', 'Points awarded for every qualified sale', 100, true),
-    (v_org_id, 'REVENUE_PER_10K', 'Points per ₹10,000 in generated revenue', 25, true),
-    (v_org_id, 'LEAD_WON', 'Bonus points for transitioning lead to Won', 50, true),
-    (v_org_id, 'TARGET_COMPLETED', 'Milestone achievement bonus', 300, true)
+    (v_org_id, 'Sale Qualified Points', 'SALE_QUALIFIED', 'Points awarded for every qualified sale', 100, true),
+    (v_org_id, 'Revenue Milestone', 'REVENUE_PER_10K', 'Points per ₹10,000 in generated revenue', 25, true),
+    (v_org_id, 'Lead Won Bonus', 'LEAD_WON', 'Bonus points for transitioning lead to Won', 50, true),
+    (v_org_id, 'Target Complete Bonus', 'TARGET_COMPLETED', 'Milestone achievement bonus', 300, true)
   ON CONFLICT DO NOTHING;
 
   -- 9. Commission Rules
-  INSERT INTO commission_rules (organization_id, rule_name, type, rate, description, is_active)
+  -- Schema column is "name" not "rule_name", and no "description" column
+  INSERT INTO commission_rules (organization_id, name, type, rate, is_active)
   VALUES
-    (v_org_id, 'Standard Base Commission', 'PERCENTAGE', 5.0, 'Standard 5% commission on all completed and paid sales', true),
-    (v_org_id, 'AI Accelerator Incentive', 'PERCENTAGE', 8.0, 'Special 8% commission on GenAI Masterclass sales', true)
+    (v_org_id, 'Standard Base Commission', 'PERCENTAGE', 5.0, true),
+    (v_org_id, 'AI Accelerator Incentive', 'PERCENTAGE', 8.0, true)
   ON CONFLICT DO NOTHING;
 
   -- 10. Bonus Rules
@@ -152,11 +156,12 @@ BEGIN
   ON CONFLICT (id) DO NOTHING;
 
   -- 12. Leads
-  INSERT INTO leads (id, organization_id, customer_id, product_id, title, stage, expected_value, probability, source, notes)
+  -- Schema has no "title" column; uses "lead_source" not "source"
+  INSERT INTO leads (id, organization_id, customer_id, product_id, stage, expected_value, probability, lead_source, notes)
   VALUES
-    (v_lead1, v_org_id, v_cust1, v_prod_ai, 'Enterprise GenAI Upskilling for Tech Team', 'WON', 65000, 100, 'Website', 'Converted after demo on Saturday'),
-    (v_lead2, v_org_id, v_cust2, v_prod_python, 'Python Career Transition Bootcamp', 'WON', 35000, 100, 'Referral', 'Payment completed via UPI'),
-    (v_lead3, v_org_id, v_cust3, v_prod_excel, 'Corporate PowerBI & Excel Analytics Program', 'NEGOTIATION', 50000, 75, 'Direct Call', 'Negotiating 2 seat discount')
+    (v_lead1, v_org_id, v_cust1, v_prod_ai, 'WON', 65000, 100, 'Website', 'Enterprise GenAI Upskilling — Converted after demo on Saturday'),
+    (v_lead2, v_org_id, v_cust2, v_prod_python, 'WON', 35000, 100, 'Referral', 'Python Career Transition Bootcamp — Payment completed via UPI'),
+    (v_lead3, v_org_id, v_cust3, v_prod_excel, 'NEGOTIATION', 50000, 75, 'Direct Call', 'Corporate PowerBI & Excel Analytics — Negotiating 2 seat discount')
   ON CONFLICT (id) DO NOTHING;
 
 END;

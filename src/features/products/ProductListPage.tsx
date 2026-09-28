@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 import { useAuth } from '@/lib/auth';
 import { productsService } from '@/services/products.service';
 import type { Product } from '@/types';
@@ -16,10 +17,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { formatCurrency } from '@/lib/utils';
-import { Package, Plus, Search, Layers, Tag } from 'lucide-react';
+import { Plus, Search, FileSpreadsheet, Download, Upload } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { productSchema, type ProductInput } from '@/schemas';
+import { ProductImportModal } from './ProductImportModal';
 
 export function ProductListPage() {
   const { organization, isAdmin } = useAuth();
@@ -31,8 +33,9 @@ export function ProductListPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-  const form = useForm<any>({
+  const form = useForm<ProductInput>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: '',
@@ -127,7 +130,7 @@ export function ProductListPage() {
     loadProducts();
   }, [orgId, statusFilter]);
 
-  const onCreateProduct = async (values: any) => {
+  const onCreateProduct = async (values: ProductInput) => {
     try {
       await productsService.create(orgId, values);
       success('Product Created', `Added "${values.name}" to catalog`);
@@ -137,6 +140,33 @@ export function ProductListPage() {
     } catch (err: unknown) {
       toastError('Failed to create product', err instanceof Error ? err.message : 'Please check product details');
     }
+  };
+
+  const handleExportToExcel = () => {
+    if (products.length === 0) {
+      toastError('Export Error', 'No products to export');
+      return;
+    }
+
+    const exportData = products.map((p, idx) => ({
+      '#': idx + 1,
+      'Product Name': p.name,
+      'SKU': p.sku || '',
+      'Category': p.category || '',
+      'Cost Price (₹)': p.cost,
+      'Selling Price (₹)': p.selling_price,
+      'Gross Margin (₹)': p.selling_price - p.cost,
+      'Margin %': p.selling_price > 0 ? Math.round(((p.selling_price - p.cost) / p.selling_price) * 100) : 0,
+      'Status': p.status,
+      'Description': p.description || '',
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Product Catalog');
+
+    XLSX.writeFile(workbook, `SalesOS_Products_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+    success('Export Complete', 'Downloaded product catalog as Excel spreadsheet.');
   };
 
   const filtered = products.filter(p =>
@@ -151,65 +181,97 @@ export function ProductListPage() {
         title="Products &amp; Programs"
         subtitle="Manage product catalog, course tuition pricing, profit margins, and sales availability."
       >
-        {isAdmin && (
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="gap-2">
-                <Plus className="w-4 h-4" /> Add Product
+        <div className="flex items-center gap-2">
+          {products.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleExportToExcel}
+            >
+              <Download className="w-4 h-4 text-muted-foreground" /> Export Excel
+            </Button>
+          )}
+
+          {isAdmin && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+                onClick={() => setIsImportModalOpen(true)}
+              >
+                <FileSpreadsheet className="w-4 h-4" /> Import Excel
               </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Add New Product / Course</DialogTitle>
-                <DialogDescription>Define catalog item pricing and attributes</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={form.handleSubmit(onCreateProduct)} className="space-y-4 py-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="name">Product Name</Label>
-                  <Input id="name" placeholder="e.g. AI & GenAI Masterclass" {...form.register('name')} />
-                  {form.formState.errors.name?.message && (
-                    <p className="text-xs text-destructive">{String(form.formState.errors.name.message)}</p>
-                  )}
-                </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="sku">SKU / Code</Label>
-                    <Input id="sku" placeholder="SKU-AI-01" {...form.register('sku')} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="category">Category</Label>
-                    <Input id="category" placeholder="Data & AI" {...form.register('category')} />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="cost">Cost Price (₹)</Label>
-                    <Input id="cost" type="number" {...form.register('cost')} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="selling_price">Selling Price (₹)</Label>
-                    <Input id="selling_price" type="number" {...form.register('selling_price')} />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea id="description" placeholder="Program overview..." {...form.register('description')} />
-                </div>
-
-                <DialogFooter className="pt-3">
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancel
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="gap-2">
+                    <Plus className="w-4 h-4" /> Add Product
                   </Button>
-                  <Button type="submit">Create Product</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>Add New Product / Course</DialogTitle>
+                    <DialogDescription>Define catalog item pricing and attributes</DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={form.handleSubmit(onCreateProduct)} className="space-y-4 py-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="name">Product Name</Label>
+                      <Input id="name" placeholder="e.g. AI & GenAI Masterclass" {...form.register('name')} />
+                      {form.formState.errors.name?.message && (
+                        <p className="text-xs text-destructive">{String(form.formState.errors.name.message)}</p>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="sku">SKU / Code</Label>
+                        <Input id="sku" placeholder="SKU-AI-01" {...form.register('sku')} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="category">Category</Label>
+                        <Input id="category" placeholder="Data & AI" {...form.register('category')} />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="cost">Cost Price (₹)</Label>
+                        <Input id="cost" type="number" {...form.register('cost')} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="selling_price">Selling Price (₹)</Label>
+                        <Input id="selling_price" type="number" {...form.register('selling_price')} />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea id="description" placeholder="Program overview..." {...form.register('description')} />
+                    </div>
+
+                    <DialogFooter className="pt-3">
+                      <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button type="submit">Create Product</Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
+        </div>
       </PageHeader>
+
+      {/* Product Import Modal */}
+      <ProductImportModal
+        open={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
+        orgId={orgId}
+        onSuccess={loadProducts}
+      />
 
       {/* Search and Filters */}
       <div className="flex flex-col sm:flex-row items-center gap-3">
@@ -240,7 +302,7 @@ export function ProductListPage() {
       ) : filtered.length === 0 ? (
         <EmptyState
           title="No products in catalog"
-          description="Add your company's offerings to start generating quotes and closing deals."
+          description="Add your company's offerings manually or batch import them from an Excel file."
           actionLabel="Add Product"
           onAction={() => setIsDialogOpen(true)}
         />

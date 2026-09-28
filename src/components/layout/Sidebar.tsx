@@ -19,6 +19,7 @@ interface NavItem {
   path: string;
   icon: React.ReactNode;
   roles: UserRole[];
+  comingSoon?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -30,15 +31,15 @@ const navItems: NavItem[] = [
   { label: 'Targets', path: '/targets', icon: <Target size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
   { label: 'Leaderboard', path: '/leaderboard', icon: <Trophy size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
   { label: 'XP & Achievements', path: '/gamification', icon: <Zap size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.SALES_REP] },
-  { label: 'Commissions', path: '/commissions', icon: <DollarSign size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.SALES_REP] },
-  { label: 'Bonuses', path: '/bonuses', icon: <Gift size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.SALES_REP] },
+  { label: 'Commissions', path: '/commissions', icon: <DollarSign size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.SALES_REP], comingSoon: true },
+  { label: 'Bonuses', path: '/bonuses', icon: <Gift size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.SALES_REP], comingSoon: true },
   { label: 'Analytics', path: '/analytics', icon: <BarChart3 size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
   { label: 'Employees', path: '/employees', icon: <Users size={20} />, roles: [UserRole.ORG_ADMIN] },
   { label: 'Teams', path: '/teams', icon: <Briefcase size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
-  { label: 'Reports', path: '/reports', icon: <FileText size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
+  { label: 'Reports', path: '/reports', icon: <FileText size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], comingSoon: true },
   { label: 'Notifications', path: '/notifications', icon: <Bell size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
-  { label: 'Audit Logs', path: '/audit-logs', icon: <Shield size={20} />, roles: [UserRole.ORG_ADMIN] },
-  { label: 'Settings', path: '/settings', icon: <Settings size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
+  { label: 'Audit Logs', path: '/audit-logs', icon: <Shield size={20} />, roles: [UserRole.ORG_ADMIN], comingSoon: true },
+  { label: 'Settings', path: '/settings', icon: <Settings size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP], comingSoon: true },
 ];
 
 const superAdminItems: NavItem[] = [
@@ -110,7 +111,12 @@ export function Sidebar() {
                   {item.icon}
                 </span>
                 {!collapsed && <span className="truncate">{item.label}</span>}
-                {isActive && !collapsed && (
+                {!collapsed && item.comingSoon && (
+                  <span className="ml-auto text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20">
+                    Soon
+                  </span>
+                )}
+                {isActive && !collapsed && !item.comingSoon && (
                   <div className="ml-auto h-1.5 w-1.5 rounded-full bg-sidebar-primary animate-pulse-soft" />
                 )}
               </Link>

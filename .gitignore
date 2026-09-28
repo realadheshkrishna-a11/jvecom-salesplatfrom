@@ -11,8 +11,16 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# Environment (keep .env.example and .env.production committed)
 .env
-.env.*
+.env.local
+.env.*.local
+!.env.example
+!.env.production
+
+# Supabase local
+supabase/.temp/
 
 # Editor directories and files
 .vscode/*
