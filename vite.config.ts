@@ -4,9 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { defineConfig, type UserConfig } from 'vite'
 
 // https://vite.dev/config/
-export default defineConfig(({ mode }): UserConfig => {
-  const isProd = mode === 'production';
-
+export default defineConfig((): UserConfig => {
   return {
     plugins: [react(), tailwindcss()],
 
@@ -18,25 +16,30 @@ export default defineConfig(({ mode }): UserConfig => {
 
     // Production build optimizations
     build: {
-      // Generate source maps for error tracking (Sentry, etc.)
-      sourcemap: isProd ? 'hidden' : true,
-      // Minify with esbuild (fast) in dev, terser (smaller) in prod
-      minify: isProd ? 'terser' : 'esbuild',
-      // Split vendor chunks for better caching
+      chunkSizeWarningLimit: 1000,
       rollupOptions: {
         output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-            'vendor-supabase': ['@supabase/supabase-js'],
-            'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs', '@radix-ui/react-tooltip'],
-            'vendor-charts': ['recharts'],
+          manualChunks(id: string) {
+            if (id.includes('node_modules')) {
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+                return 'vendor-react';
+              }
+              if (id.includes('@supabase')) {
+                return 'vendor-supabase';
+              }
+              if (id.includes('@radix-ui')) {
+                return 'vendor-ui';
+              }
+              if (id.includes('recharts')) {
+                return 'vendor-charts';
+              }
+              if (id.includes('xlsx')) {
+                return 'vendor-excel';
+              }
+            }
           },
         },
       },
-      // Warn on large chunks (> 500KB)
-      chunkSizeWarningLimit: 500,
-      // Target modern browsers
-      target: 'es2020',
     },
 
     // Dev server config

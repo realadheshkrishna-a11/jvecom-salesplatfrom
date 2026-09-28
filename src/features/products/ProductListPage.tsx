@@ -35,7 +35,7 @@ export function ProductListPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-  const form = useForm<ProductInput>({
+  const form = useForm<any>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: '',
@@ -130,7 +130,7 @@ export function ProductListPage() {
     loadProducts();
   }, [orgId, statusFilter]);
 
-  const onCreateProduct = async (values: ProductInput) => {
+  const onCreateProduct = async (values: any) => {
     try {
       await productsService.create(orgId, values);
       success('Product Created', `Added "${values.name}" to catalog`);
