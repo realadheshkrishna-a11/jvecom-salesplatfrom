@@ -541,7 +541,8 @@ export function LeadKanbanPage() {
       {loading ? (
         <LoadingSpinner text="Constructing CRM sales pipeline..." />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3.5 overflow-x-auto pb-6">
+        <div className="w-full overflow-x-auto pb-6">
+          <div className="flex gap-3.5" style={{ minWidth: 'max-content' }}>
           {STAGES.map((stage) => {
             const stageLeads = filteredLeads.filter((l) => l.stage === stage.id);
             const totalStageValue = stageLeads.reduce(
@@ -552,7 +553,8 @@ export function LeadKanbanPage() {
             return (
               <div
                 key={stage.id}
-                className="flex flex-col rounded-xl bg-muted/30 border border-border/60 p-2.5 min-w-[260px] max-h-[calc(100vh-280px)]"
+                className="flex flex-col rounded-xl bg-muted/30 border border-border/60 p-2.5 max-h-[calc(100vh-280px)]"
+                style={{ width: '280px', minWidth: '280px' }}
               >
                 {/* Stage Column Header */}
                 <div className={`border-t-4 ${stage.color} pt-2 pb-2.5 px-1 mb-2`}>
@@ -667,7 +669,7 @@ export function LeadKanbanPage() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-5 px-1 text-[10px] text-primary hover:text-primary font-medium"
+                                    className="h-5 px-1.5 text-[10px] text-primary hover:text-primary font-medium whitespace-nowrap shrink-0"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       const curIdx = STAGES.findIndex((s) => s.id === stage.id);
@@ -676,7 +678,7 @@ export function LeadKanbanPage() {
                                       }
                                     }}
                                   >
-                                    Advance <ArrowRight className="w-2.5 h-2.5 ml-0.5" />
+                                    Advance <ArrowRight className="w-2.5 h-2.5 ml-0.5 inline" />
                                   </Button>
                                 )}
                               </div>
@@ -690,6 +692,7 @@ export function LeadKanbanPage() {
               </div>
             );
           })}
+          </div>
         </div>
       )}
 

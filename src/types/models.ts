@@ -548,6 +548,9 @@ export interface LeaderboardEntry {
   revenue: number;
   target_achievement: number;
   xp: number;
+  total_sales?: number;
+  total_revenue?: number;
+  total_xp?: number;
 }
 
 export interface SalesChartData {

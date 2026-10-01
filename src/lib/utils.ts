@@ -5,17 +5,19 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatCurrency(amount: number, currency: string = 'INR'): string {
+export function formatCurrency(amount: number | string | undefined | null, currency: string = 'INR'): string {
+  const numeric = typeof amount === 'number' && !isNaN(amount) ? amount : (Number(amount) || 0);
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(numeric);
 }
 
-export function formatNumber(num: number): string {
-  return new Intl.NumberFormat('en-IN').format(num);
+export function formatNumber(num: number | string | undefined | null): string {
+  const numeric = typeof num === 'number' && !isNaN(num) ? num : (Number(num) || 0);
+  return new Intl.NumberFormat('en-IN').format(numeric);
 }
 
 export function formatPercentage(value: number, decimals: number = 1): string {

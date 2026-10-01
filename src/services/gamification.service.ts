@@ -156,9 +156,12 @@ export const gamificationService = {
       avatar_url: e.avatar_url,
       team_name: e.team_name,
       sales_count: e.sales_count,
+      total_sales: e.sales_count,
       revenue: e.revenue,
+      total_revenue: e.revenue,
       target_achievement: 100,
       xp: 0,
+      total_xp: 0,
     }));
   },
 

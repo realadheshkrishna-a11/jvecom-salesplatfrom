@@ -78,13 +78,27 @@ export function AdminDashboard() {
         }
 
         if (lbRes.status === 'fulfilled' && lbRes.value.length > 0) {
-          setLeaderboard(lbRes.value);
+          const sorted = [...lbRes.value]
+            .map((u) => {
+              const rev = Number(u.revenue ?? u.total_revenue ?? 0);
+              const deals = Number(u.sales_count ?? u.total_sales ?? 0);
+              return {
+                ...u,
+                revenue: rev,
+                total_revenue: rev,
+                sales_count: deals,
+                total_sales: deals,
+              };
+            })
+            .sort((a, b) => b.revenue - a.revenue)
+            .map((u, idx) => ({ ...u, rank: idx + 1 }));
+          setLeaderboard(sorted);
         } else {
           setLeaderboard([
-            { rank: 1, first_name: 'Arjun', last_name: 'Nair', team_name: 'Alpha Squad', total_revenue: 650000, total_sales: 11, total_xp: 3400 },
-            { rank: 2, first_name: 'Kavita', last_name: 'Menon', team_name: 'Beta Sharks', total_revenue: 520000, total_sales: 9, total_xp: 2900 },
-            { rank: 3, first_name: 'Suresh', last_name: 'Iyer', team_name: 'Alpha Squad', total_revenue: 440000, total_sales: 8, total_xp: 2450 },
-            { rank: 4, first_name: 'Pooja', last_name: 'Deshmukh', team_name: 'Beta Sharks', total_revenue: 380000, total_sales: 7, total_xp: 2100 },
+            { rank: 1, first_name: 'Arjun', last_name: 'Nair', team_name: 'Alpha Squad (North)', revenue: 650000, total_revenue: 650000, sales_count: 11, total_sales: 11, xp: 3400 },
+            { rank: 2, first_name: 'Kavita', last_name: 'Menon', team_name: 'Beta Sharks (West)', revenue: 520000, total_revenue: 520000, sales_count: 9, total_sales: 9, xp: 2900 },
+            { rank: 3, first_name: 'Suresh', last_name: 'Iyer', team_name: 'Alpha Squad (North)', revenue: 440000, total_revenue: 440000, sales_count: 8, total_sales: 8, xp: 2450 },
+            { rank: 4, first_name: 'Pooja', last_name: 'Deshmukh', team_name: 'Beta Sharks (West)', revenue: 380000, total_revenue: 380000, sales_count: 7, total_sales: 7, xp: 2100 },
           ]);
         }
 
@@ -269,18 +283,26 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent className="pt-3">
             <div className="divide-y divide-border/60">
-              {leaderboard.map((user) => (
-                <div key={user.rank} className="flex items-center justify-between py-3.5 first:pt-1">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground">{String(user.rank).padStart(2, '0')}</span>
-                    <div>
-                      <p className="text-sm font-medium">{user.first_name} {user.last_name}</p>
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">{user.team_name || 'Sales team'} · {user.total_sales} deals</p>
+              {leaderboard.map((user) => {
+                const deals = user.sales_count ?? user.total_sales ?? 0;
+                const revenue = user.revenue ?? user.total_revenue ?? 0;
+                return (
+                  <div key={user.user_id || user.rank} className="flex items-center justify-between py-3.5 first:pt-1">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground">
+                        {String(user.rank).padStart(2, '0')}
+                      </span>
+                      <div>
+                        <p className="text-sm font-medium">{user.first_name} {user.last_name}</p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          {user.team_name || 'Sales team'} · {deals} {deals === 1 ? 'deal' : 'deals'}
+                        </p>
+                      </div>
                     </div>
+                    <p className="text-sm font-semibold">{formatCurrency(revenue)}</p>
                   </div>
-                  <p className="text-sm font-semibold">{formatCurrency(user.total_revenue)}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
