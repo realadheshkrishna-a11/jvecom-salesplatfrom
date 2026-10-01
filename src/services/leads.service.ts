@@ -127,16 +127,20 @@ export const leadsService = {
     return data as unknown as Lead;
   },
 
-  async create(orgId: string, input: LeadInput): Promise<Lead> {
+  async create(orgId: string, input: LeadInput & { title?: string }): Promise<Lead> {
+    const title = input.title || `Opportunity - ${input.expected_value ? '₹' + input.expected_value : 'Lead'}`;
     if (isLocalStorageMode()) {
       return localDb.createLead(orgId, {
         customer_id: input.customer_id,
         assigned_to: input.assigned_to || null,
         product_id: input.product_id || null,
+        title,
         stage: input.stage || LeadStage.NEW,
         expected_value: input.expected_value || 0,
         probability: input.probability ?? 20,
+        expected_close_date: input.expected_close_date || null,
         source: input.lead_source || 'Website',
+        lead_source: input.lead_source || 'Website',
         notes: input.notes || null,
       } as any);
     }
@@ -148,10 +152,10 @@ export const leadsService = {
         customer_id: input.customer_id,
         assigned_to: input.assigned_to || null,
         product_id: input.product_id || null,
-        title: `Opportunity - ${input.expected_value ? '₹' + input.expected_value : 'Lead'}`,
+        title,
         stage: input.stage || LeadStage.NEW,
         expected_value: input.expected_value || 0,
-        probability: input.probability ?? 10,
+        probability: input.probability ?? 20,
         expected_close_date: input.expected_close_date || null,
         source: input.lead_source || null,
         notes: input.notes || null,
@@ -168,7 +172,16 @@ export const leadsService = {
     return data as unknown as Lead;
   },
 
-  async update(id: string, input: Partial<LeadInput>): Promise<Lead> {
+  async delete(id: string): Promise<boolean> {
+    if (isLocalStorageMode()) {
+      return localDb.deleteLead(id);
+    }
+    const { error } = await supabase.from('leads').delete().eq('id', id);
+    if (error) throw error;
+    return true;
+  },
+
+  async update(id: string, input: Partial<LeadInput> & { title?: string }): Promise<Lead> {
     if (isLocalStorageMode()) {
       return localDb.update<Lead>('leads', id, input as any);
     }
@@ -176,6 +189,7 @@ export const leadsService = {
     const updates: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
     };
+    if (input.title !== undefined) updates.title = input.title;
     if (input.customer_id !== undefined) updates.customer_id = input.customer_id;
     if (input.assigned_to !== undefined) updates.assigned_to = input.assigned_to;
     if (input.product_id !== undefined) updates.product_id = input.product_id;
@@ -204,7 +218,13 @@ export const leadsService = {
 
   async updateStage(id: string, stage: LeadStage, userId: string, notes?: string): Promise<Lead> {
     if (isLocalStorageMode()) {
-      return localDb.updateLeadStage(id, stage);
+      const updated = localDb.updateLeadStage(id, stage);
+      localDb.addLeadActivity(updated.organization_id, id, userId, {
+        type: LeadActivityType.NOTE,
+        description: `Stage moved to ${stage}${notes ? ': ' + notes : ''}`,
+        outcome: 'STAGE_CHANGE',
+      });
+      return updated;
     }
 
     // 1. Get current lead
@@ -240,6 +260,10 @@ export const leadsService = {
   },
 
   async getActivities(leadId: string): Promise<LeadActivity[]> {
+    if (isLocalStorageMode()) {
+      return localDb.getLeadActivities(leadId);
+    }
+
     const { data, error } = await supabase
       .from('lead_activities')
       .select('*, user:profiles(id, first_name, last_name, avatar_url)')
@@ -251,6 +275,10 @@ export const leadsService = {
   },
 
   async addActivity(orgId: string, leadId: string, userId: string, input: LeadActivityInput): Promise<LeadActivity> {
+    if (isLocalStorageMode()) {
+      return localDb.addLeadActivity(orgId, leadId, userId, input);
+    }
+
     const { data, error } = await supabase
       .from('lead_activities')
       .insert({
@@ -270,6 +298,10 @@ export const leadsService = {
   },
 
   async getFollowUps(orgId: string, filters: { leadId?: string; userId?: string; status?: FollowUpStatus; filter?: 'today' | 'overdue' | 'upcoming' } = {}): Promise<FollowUp[]> {
+    if (isLocalStorageMode()) {
+      return localDb.getFollowUps(orgId, filters);
+    }
+
     let query = supabase
       .from('follow_ups')
       .select('*, lead:leads(id, title, customer:customers(first_name, last_name, phone)), user:profiles(id, first_name, last_name)')
@@ -299,6 +331,10 @@ export const leadsService = {
   },
 
   async createFollowUp(orgId: string, userId: string, input: FollowUpInput): Promise<FollowUp> {
+    if (isLocalStorageMode()) {
+      return localDb.createFollowUp(orgId, userId, input);
+    }
+
     const { data, error } = await supabase
       .from('follow_ups')
       .insert({
@@ -319,6 +355,10 @@ export const leadsService = {
   },
 
   async updateFollowUpStatus(id: string, status: FollowUpStatus, completionNotes?: string): Promise<FollowUp> {
+    if (isLocalStorageMode()) {
+      return localDb.updateFollowUpStatus(id, status, completionNotes);
+    }
+
     const updates: Record<string, unknown> = {
       status,
       updated_at: new Date().toISOString(),

@@ -12,6 +12,7 @@ import type {
 } from '@/types';
 import {
   UserRole, OrgStatus, EmployeeStatus, TeamStatus, ProductStatus, CustomerStatus, LeadStage,
+  LeadActivityType, FollowUpStatus,
   PaymentStatus, PaymentMethod, TargetType, TargetScope, TargetPeriod, XPSourceType,
   CompensationStatus, BonusConditionType, CommissionRuleType, NotificationType, AuditAction, EntityType
 } from '@/types';
@@ -493,6 +494,71 @@ export const INITIAL_LEADS: Lead[] = [
   },
 ];
 
+export const INITIAL_LEAD_ACTIVITIES: LeadActivity[] = [
+  {
+    id: 'act-1',
+    organization_id: DEFAULT_ORG_ID,
+    lead_id: '88888888-8888-8888-8888-888888888881',
+    user_id: '44444444-4444-4444-4444-444444444441',
+    type: LeadActivityType.DEMO,
+    description: 'Delivered custom GenAI architecture demo for Tech team',
+    outcome: 'EXCELLENT',
+    activity_date: '2026-03-03T14:30:00Z',
+    created_at: '2026-03-03T14:30:00Z',
+  },
+  {
+    id: 'act-2',
+    organization_id: DEFAULT_ORG_ID,
+    lead_id: '88888888-8888-8888-8888-888888888883',
+    user_id: '44444444-4444-4444-4444-444444444441',
+    type: LeadActivityType.CALL,
+    description: 'Discussed 3-part installment plan via phone',
+    outcome: 'POSITIVE',
+    activity_date: '2026-03-05T11:00:00Z',
+    created_at: '2026-03-05T11:00:00Z',
+  },
+  {
+    id: 'act-3',
+    organization_id: DEFAULT_ORG_ID,
+    lead_id: '88888888-8888-8888-8888-888888888884',
+    user_id: '44444444-4444-4444-4444-444444444443',
+    type: LeadActivityType.WHATSAPP,
+    description: 'Shared syllabus PDF and lab schedule on WhatsApp',
+    outcome: 'DELIVERED',
+    activity_date: '2026-03-07T10:15:00Z',
+    created_at: '2026-03-07T10:15:00Z',
+  },
+];
+
+export const INITIAL_FOLLOW_UPS: FollowUp[] = [
+  {
+    id: 'fu-1',
+    organization_id: DEFAULT_ORG_ID,
+    lead_id: '88888888-8888-8888-8888-888888888883',
+    user_id: '44444444-4444-4444-4444-444444444441',
+    due_date: '2026-10-05',
+    due_time: '15:00',
+    reminder: true,
+    status: FollowUpStatus.PENDING,
+    notes: 'Follow up on EMI payment link and invoice',
+    created_at: '2026-03-05T11:05:00Z',
+    updated_at: '2026-03-05T11:05:00Z',
+  },
+  {
+    id: 'fu-2',
+    organization_id: DEFAULT_ORG_ID,
+    lead_id: '88888888-8888-8888-8888-888888888884',
+    user_id: '44444444-4444-4444-4444-444444444443',
+    due_date: '2026-10-08',
+    due_time: '16:00',
+    reminder: true,
+    status: FollowUpStatus.PENDING,
+    notes: 'Schedule product walkthrough demo with team lead',
+    created_at: '2026-03-07T10:20:00Z',
+    updated_at: '2026-03-07T10:20:00Z',
+  },
+];
+
 export const INITIAL_SALES: Sale[] = [
   {
     id: '99999999-9999-9999-9999-999999999991',
@@ -843,7 +909,7 @@ class LocalDatabase {
   public init(forceReset = false) {
     if (typeof window === 'undefined') return;
 
-    const DB_VERSION = 'v2.4';
+    const DB_VERSION = 'v2.5';
     const currentVersion = localStorage.getItem('salesos_db_version');
 
     if (!currentVersion || currentVersion !== DB_VERSION || forceReset) {
@@ -862,6 +928,13 @@ class LocalDatabase {
         }));
         setCollection('profiles', sanitized);
       }
+      // Ensure activities & follow-ups collections exist
+      if (forceReset || !localStorage.getItem('salesos_lead_activities')) {
+        setCollection('lead_activities', INITIAL_LEAD_ACTIVITIES);
+      }
+      if (forceReset || !localStorage.getItem('salesos_follow_ups')) {
+        setCollection('follow_ups', INITIAL_FOLLOW_UPS);
+      }
       localStorage.setItem('salesos_db_version', DB_VERSION);
     }
 
@@ -878,6 +951,8 @@ class LocalDatabase {
     setCollection('products', INITIAL_PRODUCTS);
     setCollection('customers', INITIAL_CUSTOMERS);
     setCollection('leads', INITIAL_LEADS);
+    setCollection('lead_activities', INITIAL_LEAD_ACTIVITIES);
+    setCollection('follow_ups', INITIAL_FOLLOW_UPS);
     setCollection('sales', INITIAL_SALES);
     setCollection('sale_items', INITIAL_SALE_ITEMS);
     setCollection('commission_rules', INITIAL_COMMISSION_RULES);
@@ -1153,6 +1228,108 @@ class LocalDatabase {
       product: products.find(p => p.id === updated.product_id),
       assigned_salesperson: profiles.find(p => p.id === updated.assigned_to),
     };
+  }
+
+  public deleteLead(leadId: string): boolean {
+    return this.delete<Lead>('leads', leadId);
+  }
+
+  public getLeadActivities(leadId: string): LeadActivity[] {
+    const activities = getCollection<LeadActivity>('lead_activities').filter(a => a.lead_id === leadId);
+    const profiles = getCollection<Profile>('profiles');
+    return activities
+      .sort((a, b) => new Date(b.activity_date || b.created_at || '').getTime() - new Date(a.activity_date || a.created_at || '').getTime())
+      .map(act => ({
+        ...act,
+        user: profiles.find(p => p.id === act.user_id) ? {
+          id: act.user_id,
+          first_name: profiles.find(p => p.id === act.user_id)!.first_name,
+          last_name: profiles.find(p => p.id === act.user_id)!.last_name,
+          avatar_url: profiles.find(p => p.id === act.user_id)!.avatar_url,
+        } as any : undefined,
+      }));
+  }
+
+  public addLeadActivity(orgId: string, leadId: string, userId: string, input: any): LeadActivity {
+    const newAct: LeadActivity = {
+      id: generateUUID(),
+      organization_id: orgId,
+      lead_id: leadId,
+      user_id: userId,
+      type: input.type,
+      description: input.description || null,
+      outcome: input.outcome || null,
+      activity_date: input.activity_date || new Date().toISOString(),
+      created_at: new Date().toISOString(),
+    };
+    const saved = this.insert<LeadActivity>('lead_activities', newAct);
+    const profiles = getCollection<Profile>('profiles');
+    const u = profiles.find(p => p.id === userId);
+    return {
+      ...saved,
+      user: u ? { id: u.id, first_name: u.first_name, last_name: u.last_name, avatar_url: u.avatar_url } as any : undefined,
+    };
+  }
+
+  public getFollowUps(orgId: string, filters: { leadId?: string; userId?: string; status?: FollowUpStatus; filter?: 'today' | 'overdue' | 'upcoming' } = {}): FollowUp[] {
+    let list = getCollection<FollowUp>('follow_ups').filter(f => f.organization_id === orgId);
+    if (filters.leadId) list = list.filter(f => f.lead_id === filters.leadId);
+    if (filters.userId) list = list.filter(f => f.user_id === filters.userId);
+    if (filters.status) list = list.filter(f => f.status === filters.status);
+
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    if (filters.filter === 'today') {
+      list = list.filter(f => f.due_date?.startsWith(todayStr) && f.status === FollowUpStatus.PENDING);
+    } else if (filters.filter === 'overdue') {
+      list = list.filter(f => f.due_date && f.due_date < todayStr && f.status === FollowUpStatus.PENDING);
+    } else if (filters.filter === 'upcoming') {
+      list = list.filter(f => f.due_date && f.due_date > todayStr && f.status === FollowUpStatus.PENDING);
+    }
+
+    const leads = getCollection<Lead>('leads');
+    const customers = getCollection<Customer>('customers');
+    const profiles = getCollection<Profile>('profiles');
+
+    return list.map(f => {
+      const l = leads.find(ld => ld.id === f.lead_id);
+      const cust = l ? customers.find(c => c.id === l.customer_id) : undefined;
+      const u = profiles.find(p => p.id === f.user_id);
+      return {
+        ...f,
+        lead: l ? {
+          id: l.id,
+          title: l.title,
+          customer: cust ? { first_name: cust.first_name, last_name: cust.last_name, phone: cust.phone } : undefined,
+        } as any : undefined,
+        user: u ? { id: u.id, first_name: u.first_name, last_name: u.last_name } as any : undefined,
+      };
+    });
+  }
+
+  public createFollowUp(orgId: string, userId: string, input: any): FollowUp {
+    const newFu: FollowUp = {
+      id: generateUUID(),
+      organization_id: orgId,
+      lead_id: input.lead_id,
+      user_id: userId,
+      due_date: input.due_date,
+      due_time: input.due_time || null,
+      reminder: input.reminder || false,
+      notes: input.notes || null,
+      status: FollowUpStatus.PENDING,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    return this.insert<FollowUp>('follow_ups', newFu);
+  }
+
+  public updateFollowUpStatus(id: string, status: FollowUpStatus, completionNotes?: string): FollowUp {
+    const existing = this.getById<FollowUp>('follow_ups', id);
+    return this.update<FollowUp>('follow_ups', id, {
+      status,
+      notes: completionNotes ? `${existing?.notes ? existing.notes + ' | ' : ''}Note: ${completionNotes}` : existing?.notes,
+    });
   }
 
   // Sales & Order Qualification Engine
