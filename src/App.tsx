@@ -13,38 +13,17 @@ import { AcceptInvitationPage } from '@/features/auth/AcceptInvitationPage';
 // Dashboards
 import { DashboardRouter } from '@/features/dashboard/DashboardRouter';
 
-// Core Features
+// Active Features
 import { LeadKanbanPage } from '@/features/leads/LeadKanbanPage';
 import { SaleListPage } from '@/features/sales/SaleListPage';
 import { CreateSalePage } from '@/features/sales/CreateSalePage';
 import { ProductListPage } from '@/features/products/ProductListPage';
 import { CustomerListPage } from '@/features/customers/CustomerListPage';
 import { CustomerDetailPage } from '@/features/customers/CustomerDetailPage';
-import { TargetListPage } from '@/features/targets/TargetListPage';
+import { MailPage } from '@/features/mail/MailPage';
 
-// Gamification
-import { LeaderboardPage } from '@/features/gamification/LeaderboardPage';
-import { XPPage } from '@/features/gamification/XPPage';
-import { AchievementsPage } from '@/features/gamification/AchievementsPage';
-
-// Compensation
-import { CommissionListPage } from '@/features/commissions/CommissionListPage';
-import { BonusListPage } from '@/features/bonuses/BonusListPage';
-import { CompensationDashboardPage } from '@/features/compensation/CompensationDashboardPage';
-
-// Analytics & Reports
-import { AnalyticsPage } from '@/features/analytics/AnalyticsPage';
-import { ReportsPage } from '@/features/reports/ReportsPage';
-
-// Management
-import { EmployeeListPage } from '@/features/employees/EmployeeListPage';
-import { EmployeeDetailPage } from '@/features/employees/EmployeeDetailPage';
-import { TeamListPage } from '@/features/teams/TeamListPage';
-
-// Governance & Settings
-import { NotificationListPage } from '@/features/notifications/NotificationListPage';
-import { AuditLogPage } from '@/features/audit/AuditLogPage';
-import { SettingsPage } from '@/features/settings/SettingsPage';
+// Coming Soon
+import { ComingSoonPage } from '@/features/coming-soon/ComingSoonPage';
 
 export function App() {
   return (
@@ -64,40 +43,32 @@ export function App() {
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard" element={<DashboardRouter />} />
 
-                {/* CRM & Sales */}
+                {/* CRM & Sales — Active */}
                 <Route path="/leads" element={<LeadKanbanPage />} />
                 <Route path="/sales" element={<SaleListPage />} />
                 <Route path="/sales/create" element={<CreateSalePage />} />
                 <Route path="/products" element={<ProductListPage />} />
                 <Route path="/customers" element={<CustomerListPage />} />
                 <Route path="/customers/:id" element={<CustomerDetailPage />} />
+                <Route path="/mail" element={<MailPage />} />
 
-                {/* Targets & Quotas */}
-                <Route path="/targets" element={<TargetListPage />} />
-
-                {/* Gamification */}
-                <Route path="/leaderboard" element={<LeaderboardPage />} />
-                <Route path="/gamification" element={<XPPage />} />
-                <Route path="/achievements" element={<AchievementsPage />} />
-
-                {/* Compensation */}
-                <Route path="/commissions" element={<CommissionListPage />} />
-                <Route path="/bonuses" element={<BonusListPage />} />
-                <Route path="/compensation" element={<CompensationDashboardPage />} />
-
-                {/* Analytics & Reports */}
-                <Route path="/analytics" element={<AnalyticsPage />} />
-                <Route path="/reports" element={<ReportsPage />} />
-
-                {/* Team & Employees */}
-                <Route path="/employees" element={<EmployeeListPage />} />
-                <Route path="/employees/:id" element={<EmployeeDetailPage />} />
-                <Route path="/teams" element={<TeamListPage />} />
-
-                {/* Governance & Alerts */}
-                <Route path="/notifications" element={<NotificationListPage />} />
-                <Route path="/audit-logs" element={<AuditLogPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
+                {/* Coming Soon — all other features */}
+                <Route path="/coming-soon" element={<ComingSoonPage />} />
+                <Route path="/targets" element={<ComingSoonPage />} />
+                <Route path="/leaderboard" element={<ComingSoonPage />} />
+                <Route path="/gamification" element={<ComingSoonPage />} />
+                <Route path="/achievements" element={<ComingSoonPage />} />
+                <Route path="/commissions" element={<ComingSoonPage />} />
+                <Route path="/bonuses" element={<ComingSoonPage />} />
+                <Route path="/compensation" element={<ComingSoonPage />} />
+                <Route path="/analytics" element={<ComingSoonPage />} />
+                <Route path="/reports" element={<ComingSoonPage />} />
+                <Route path="/employees" element={<ComingSoonPage />} />
+                <Route path="/employees/:id" element={<ComingSoonPage />} />
+                <Route path="/teams" element={<ComingSoonPage />} />
+                <Route path="/notifications" element={<ComingSoonPage />} />
+                <Route path="/audit-logs" element={<ComingSoonPage />} />
+                <Route path="/settings" element={<ComingSoonPage />} />
               </Route>
             </Route>
 

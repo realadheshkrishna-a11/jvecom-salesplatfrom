@@ -9,8 +9,10 @@ import {
   Target, Trophy, Zap, DollarSign, Gift, BarChart3,
   FileText, Bell, Shield, Settings, Building2,
   Briefcase, TrendingUp, Award, ChevronLeft, Menu,
-  Handshake, UserCog,
+  Handshake, UserCog, Mail,
 } from 'lucide-react';
+import { emailService } from '@/services/email.service';
+import { useState as useStateLocal, useEffect as useEffectLocal } from 'react';
 import { UserRole } from '@/types';
 import { useState } from 'react';
 
@@ -22,22 +24,25 @@ interface NavItem {
   comingSoon?: boolean;
 }
 
+const ACTIVE_PATHS = new Set(['/dashboard', '/leads', '/sales', '/products', '/customers', '/mail']);
+
 const navItems: NavItem[] = [
   { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
   { label: 'CRM', path: '/leads', icon: <Handshake size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
   { label: 'Sales', path: '/sales', icon: <ShoppingCart size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
   { label: 'Products', path: '/products', icon: <Package size={20} />, roles: [UserRole.ORG_ADMIN] },
   { label: 'Customers', path: '/customers', icon: <UserCircle size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
-  { label: 'Targets', path: '/targets', icon: <Target size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
-  { label: 'Leaderboard', path: '/leaderboard', icon: <Trophy size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
-  { label: 'XP & Achievements', path: '/gamification', icon: <Zap size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.SALES_REP] },
+  { label: 'Mail', path: '/mail', icon: <Mail size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
+  { label: 'Targets', path: '/targets', icon: <Target size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP], comingSoon: true },
+  { label: 'Leaderboard', path: '/leaderboard', icon: <Trophy size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP], comingSoon: true },
+  { label: 'XP & Achievements', path: '/gamification', icon: <Zap size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.SALES_REP], comingSoon: true },
   { label: 'Commissions', path: '/commissions', icon: <DollarSign size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.SALES_REP], comingSoon: true },
   { label: 'Bonuses', path: '/bonuses', icon: <Gift size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.SALES_REP], comingSoon: true },
-  { label: 'Analytics', path: '/analytics', icon: <BarChart3 size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
-  { label: 'Employees', path: '/employees', icon: <Users size={20} />, roles: [UserRole.ORG_ADMIN] },
-  { label: 'Teams', path: '/teams', icon: <Briefcase size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
+  { label: 'Analytics', path: '/analytics', icon: <BarChart3 size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], comingSoon: true },
+  { label: 'Employees', path: '/employees', icon: <Users size={20} />, roles: [UserRole.ORG_ADMIN], comingSoon: true },
+  { label: 'Teams', path: '/teams', icon: <Briefcase size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], comingSoon: true },
   { label: 'Reports', path: '/reports', icon: <FileText size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], comingSoon: true },
-  { label: 'Notifications', path: '/notifications', icon: <Bell size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
+  { label: 'Notifications', path: '/notifications', icon: <Bell size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP], comingSoon: true },
   { label: 'Audit Logs', path: '/audit-logs', icon: <Shield size={20} />, roles: [UserRole.ORG_ADMIN], comingSoon: true },
   { label: 'Settings', path: '/settings', icon: <Settings size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP], comingSoon: true },
 ];
@@ -54,6 +59,14 @@ export function Sidebar() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mailUnread, setMailUnread] = useStateLocal(0);
+
+  useEffectLocal(() => {
+    setMailUnread(emailService.totalUnread());
+    const interval = setInterval(() => setMailUnread(emailService.totalUnread()), 5000);
+    return () => clearInterval(interval);
+  }, []);
+
 
   if (!profile) return null;
 
@@ -95,10 +108,12 @@ export function Sidebar() {
             const isActive = location.pathname === item.path ||
               (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
 
+            const navTo = item.comingSoon ? '/coming-soon' : item.path;
+
             return (
               <Link
                 key={item.path}
-                to={item.path}
+                to={navTo}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200",
@@ -116,7 +131,12 @@ export function Sidebar() {
                     Soon
                   </span>
                 )}
-                {isActive && !collapsed && !item.comingSoon && (
+                {!collapsed && !item.comingSoon && item.path === '/mail' && mailUnread > 0 && (
+                  <span className="ml-auto flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground animate-pulse">
+                    {mailUnread}
+                  </span>
+                )}
+                {isActive && !collapsed && !item.comingSoon && item.path !== '/mail' && (
                   <div className="ml-auto h-1.5 w-1.5 rounded-full bg-sidebar-primary animate-pulse-soft" />
                 )}
               </Link>
