@@ -8,8 +8,9 @@ import {
   LayoutDashboard, Users, UserCircle, Package, ShoppingCart,
   Target, Trophy, Zap, DollarSign, Gift, BarChart3,
   FileText, Bell, Shield, Settings, Building2,
-  Briefcase, TrendingUp, Award, ChevronLeft, Menu,
-  Handshake, UserCog, Mail,
+  Briefcase, TrendingUp, ChevronLeft, Menu,
+  Handshake, UserCog, Mail, Inbox, Send, FileEdit, Trash2,
+  ChevronDown, ChevronRight,
 } from 'lucide-react';
 import { emailService } from '@/services/email.service';
 import { useState as useStateLocal, useEffect as useEffectLocal } from 'react';
@@ -24,15 +25,13 @@ interface NavItem {
   comingSoon?: boolean;
 }
 
-const ACTIVE_PATHS = new Set(['/dashboard', '/leads', '/sales', '/products', '/customers', '/mail']);
-
 const navItems: NavItem[] = [
   { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
   { label: 'CRM', path: '/leads', icon: <Handshake size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
   { label: 'Sales', path: '/sales', icon: <ShoppingCart size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
   { label: 'Products', path: '/products', icon: <Package size={20} />, roles: [UserRole.ORG_ADMIN] },
   { label: 'Customers', path: '/customers', icon: <UserCircle size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
-  { label: 'Mail', path: '/mail', icon: <Mail size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
+  { label: 'Mail', path: '/mail', icon: <Mail size={20} />, roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
   { label: 'Targets', path: '/targets', icon: <Target size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP], comingSoon: true },
   { label: 'Leaderboard', path: '/leaderboard', icon: <Trophy size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP], comingSoon: true },
   { label: 'XP & Achievements', path: '/gamification', icon: <Zap size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.SALES_REP], comingSoon: true },
@@ -49,6 +48,7 @@ const navItems: NavItem[] = [
 
 const superAdminItems: NavItem[] = [
   { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: [UserRole.SUPER_ADMIN] },
+  { label: 'Mail', path: '/mail', icon: <Mail size={20} />, roles: [UserRole.SUPER_ADMIN] },
   { label: 'Organizations', path: '/organizations', icon: <Building2 size={20} />, roles: [UserRole.SUPER_ADMIN] },
   { label: 'Users', path: '/admin/users', icon: <UserCog size={20} />, roles: [UserRole.SUPER_ADMIN] },
   { label: 'Settings', path: '/settings', icon: <Settings size={20} />, roles: [UserRole.SUPER_ADMIN] },
@@ -59,14 +59,25 @@ export function Sidebar() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [mailUnread, setMailUnread] = useStateLocal(0);
+  const [mailExpanded, setMailExpanded] = useState(true);
+  const [folderCounts, setFolderCounts] = useStateLocal({
+    inbox: 0,
+    sent: 0,
+    drafts: 0,
+    trash: 0,
+    unread: 0,
+  });
+
+  const userEmail = profile?.email ?? '';
 
   useEffectLocal(() => {
-    setMailUnread(emailService.totalUnread());
-    const interval = setInterval(() => setMailUnread(emailService.totalUnread()), 5000);
+    const updateCounts = () => {
+      setFolderCounts(emailService.getFolderCounts(userEmail));
+    };
+    updateCounts();
+    const interval = setInterval(updateCounts, 4000);
     return () => clearInterval(interval);
-  }, []);
-
+  }, [userEmail]);
 
   if (!profile) return null;
 
@@ -74,6 +85,17 @@ export function Sidebar() {
   const items = role === UserRole.SUPER_ADMIN
     ? superAdminItems
     : navItems.filter(item => item.roles.includes(role));
+
+  const isMailActive = location.pathname.startsWith('/mail');
+  const currentParams = new URLSearchParams(location.search);
+  const currentFolder = currentParams.get('folder') || 'inbox';
+
+  const mailSubItems = [
+    { key: 'inbox', label: 'Inbox', path: '/mail?folder=inbox', icon: <Inbox size={15} />, count: folderCounts.unread, isUnread: true },
+    { key: 'sent', label: 'Sent', path: '/mail?folder=sent', icon: <Send size={15} />, count: folderCounts.sent },
+    { key: 'drafts', label: 'Drafts', path: '/mail?folder=drafts', icon: <FileEdit size={15} />, count: folderCounts.drafts },
+    { key: 'trash', label: 'Trash', path: '/mail?folder=trash', icon: <Trash2 size={15} />, count: folderCounts.trash },
+  ];
 
   const sidebarContent = (
     <div className={cn(
@@ -96,6 +118,7 @@ export function Sidebar() {
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="ml-auto hidden lg:flex h-7 w-7 items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors"
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           <ChevronLeft className={cn("h-4 w-4 transition-transform", collapsed && "rotate-180")} />
         </button>
@@ -105,6 +128,93 @@ export function Sidebar() {
       <ScrollArea className="flex-1 py-4">
         <nav className="flex flex-col gap-1 px-3">
           {items.map((item) => {
+            const isMail = item.path === '/mail';
+
+            if (isMail) {
+              const active = isMailActive;
+
+              return (
+                <div key="/mail" className="flex flex-col">
+                  {/* Mail Parent Item */}
+                  <div className="flex items-center">
+                    <Link
+                      to="/mail?folder=inbox"
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex flex-1 items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200",
+                        active
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                      )}
+                    >
+                      <span className={cn("shrink-0", active && "text-sidebar-primary")}>
+                        {item.icon}
+                      </span>
+                      {!collapsed && <span className="truncate">{item.label}</span>}
+                      {!collapsed && folderCounts.unread > 0 && (
+                        <span className="ml-auto flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                          {folderCounts.unread}
+                        </span>
+                      )}
+                    </Link>
+
+                    {!collapsed && (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setMailExpanded(!mailExpanded);
+                        }}
+                        className="p-1.5 ml-1 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/60 rounded-md transition-colors"
+                        title={mailExpanded ? "Collapse folders" : "Expand folders"}
+                      >
+                        {mailExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Mail Sub-folders (Inbox, Sent, Drafts, Trash) */}
+                  {!collapsed && mailExpanded && (
+                    <div className="ml-4 pl-3 border-l border-sidebar-border/60 my-1 flex flex-col gap-0.5 animate-fade-in">
+                      {mailSubItems.map(sub => {
+                        const isSubActive = isMailActive && currentFolder === sub.key;
+
+                        return (
+                          <Link
+                            key={sub.key}
+                            to={sub.path}
+                            onClick={() => setMobileOpen(false)}
+                            className={cn(
+                              "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
+                              isSubActive
+                                ? "bg-sidebar-accent/80 text-sidebar-primary font-semibold"
+                                : "text-sidebar-foreground/60 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                            )}
+                          >
+                            <span className={cn("shrink-0", isSubActive ? "text-sidebar-primary" : "text-sidebar-foreground/50")}>
+                              {sub.icon}
+                            </span>
+                            <span className="truncate">{sub.label}</span>
+                            {sub.count > 0 && (
+                              <span
+                                className={cn(
+                                  "ml-auto text-[10px] px-1.5 py-0.2 rounded-full font-bold",
+                                  sub.isUnread
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-sidebar-accent text-sidebar-foreground/70"
+                                )}
+                              >
+                                {sub.count}
+                              </span>
+                            )}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             const isActive = location.pathname === item.path ||
               (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
 
@@ -118,7 +228,7 @@ export function Sidebar() {
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200",
                   isActive
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                 )}
               >
@@ -131,12 +241,7 @@ export function Sidebar() {
                     Soon
                   </span>
                 )}
-                {!collapsed && !item.comingSoon && item.path === '/mail' && mailUnread > 0 && (
-                  <span className="ml-auto flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground animate-pulse">
-                    {mailUnread}
-                  </span>
-                )}
-                {isActive && !collapsed && !item.comingSoon && item.path !== '/mail' && (
+                {isActive && !collapsed && !item.comingSoon && (
                   <div className="ml-auto h-1.5 w-1.5 rounded-full bg-sidebar-primary animate-pulse-soft" />
                 )}
               </Link>

@@ -1,6 +1,6 @@
 import { useAuth } from '@/lib/auth';
 import { useNavigate } from 'react-router-dom';
-import { Bell, LogOut, User, Settings, ChevronRight, UserCheck } from 'lucide-react';
+import { Bell, LogOut, User, Settings, ChevronRight, UserCheck, Mail } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -69,12 +69,24 @@ export function TopNav({ breadcrumbs = [] }: TopNavProps) {
           </DropdownMenuContent>
         </DropdownMenu>
 
+        {/* Mail Quick Access */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative h-9 w-9"
+          onClick={() => navigate('/mail?folder=inbox')}
+          title="Inbox & Mail"
+        >
+          <Mail className="h-4.5 w-4.5" />
+        </Button>
+
         {/* Notifications */}
         <Button
           variant="ghost"
           size="icon"
           className="relative h-9 w-9"
           onClick={() => navigate('/notifications')}
+          title="Notifications"
         >
           <Bell className="h-4.5 w-4.5" />
           {unreadCount > 0 && (
