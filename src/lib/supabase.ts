@@ -27,7 +27,7 @@ function validateConfig(): { url: string; key: string } {
       throw new Error(message);
     }
     console.warn(message);
-    console.info('[SalesOS] Running in offline/demo mode with localStorage fallback.');
+    console.info('[SalesOS] Running in offline mode with localStorage fallback.');
   }
 
   return {

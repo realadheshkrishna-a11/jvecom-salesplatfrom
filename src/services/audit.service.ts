@@ -4,7 +4,7 @@
 // ============================================================================
 
 import { supabase } from '@/lib/supabase';
-import { localDb, isLocalStorageMode } from '@/lib/localDb';
+import { localDb, isLocalStorageMode, generateUUID } from '@/lib/localDb';
 import type { AuditLog, PaginatedResponse } from '@/types';
 import { AuditAction, EntityType } from '@/types';
 
@@ -66,6 +66,23 @@ export const auditService = {
 
   async log(orgId: string, userId: string, action: AuditAction, entityType: EntityType, entityId?: string, details?: Record<string, unknown>): Promise<void> {
     try {
+      if (isLocalStorageMode()) {
+        const newLog: AuditLog = {
+          id: generateUUID(),
+          organization_id: orgId,
+          actor_id: userId,
+          user_id: userId,
+          action,
+          entity_type: entityType,
+          entity_id: entityId || '',
+          details: details || {},
+          ip_address: '127.0.0.1',
+          created_at: new Date().toISOString(),
+        };
+        localDb.insert<AuditLog>('audit_logs', newLog);
+        return;
+      }
+
       await supabase
         .from('audit_logs')
         .insert({

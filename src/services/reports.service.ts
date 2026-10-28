@@ -1,10 +1,8 @@
-// ============================================================================
-// SalesOS — Reports & Export Service
-// Analytics reports aggregation and PapaParse CSV generation
-// ============================================================================
-
 import Papa from 'papaparse';
 import { supabase } from '@/lib/supabase';
+import { localDb, isLocalStorageMode } from '@/lib/localDb';
+import type { Sale, Profile, Customer, Team } from '@/types';
+import { PaymentStatus } from '@/types';
 
 export interface ReportFilterOptions {
   dateFrom?: string;
@@ -33,6 +31,37 @@ export const reportsService = {
   },
 
   async getSalesReport(orgId: string, filters: ReportFilterOptions = {}) {
+    if (isLocalStorageMode()) {
+      let sales = localDb.getAll<Sale>('sales');
+      const customers = localDb.getAll<Customer>('customers');
+      const profiles = localDb.getAll<Profile>('profiles');
+      const teams = localDb.getAll<Team>('teams');
+
+      if (filters.userId) sales = sales.filter(s => s.user_id === filters.userId);
+      if (filters.teamId) sales = sales.filter(s => s.team_id === filters.teamId);
+      if (filters.dateFrom) sales = sales.filter(s => s.sale_date >= filters.dateFrom!);
+      if (filters.dateTo) sales = sales.filter(s => s.sale_date <= filters.dateTo!);
+
+      return sales.map(s => {
+        const cust = customers.find(c => c.id === s.customer_id);
+        const user = profiles.find(p => p.id === s.user_id);
+        const team = teams.find(t => t.id === s.team_id);
+        return {
+          Invoice: s.invoice_number,
+          Date: s.sale_date ? new Date(s.sale_date).toLocaleDateString() : '',
+          Customer: cust ? `${cust.first_name} ${cust.last_name}` : 'Direct Customer',
+          Salesperson: user ? `${user.first_name} ${user.last_name}` : 'Sales Rep',
+          Team: team?.name || 'Alpha Squad',
+          Subtotal: s.subtotal || s.total,
+          Discount: s.discount || 0,
+          Tax: s.tax || 0,
+          Total: s.total,
+          Method: s.payment_method,
+          Status: s.payment_status,
+        };
+      });
+    }
+
     let query = supabase
       .from('sales')
       .select(`
@@ -75,6 +104,27 @@ export const reportsService = {
   },
 
   async getEmployeePerformanceReport(orgId: string) {
+    if (isLocalStorageMode()) {
+      const profiles = localDb.getAll<Profile>('profiles').filter(p => !orgId || p.organization_id === orgId);
+      const sales = localDb.getAll<Sale>('sales').filter(s => s.payment_status === PaymentStatus.PAID);
+      const teams = localDb.getAll<Team>('teams');
+
+      return profiles.map(p => {
+        const userSales = sales.filter(s => s.user_id === p.id);
+        const totalRev = userSales.reduce((acc, s) => acc + Number(s.total || 0), 0);
+        const team = teams.find(t => t.id === p.team_id);
+        return {
+          Employee: `${p.first_name} ${p.last_name}`,
+          Email: p.email,
+          Role: p.role,
+          Team: team?.name || 'Unassigned',
+          DealsClosed: userSales.length,
+          TotalRevenue: totalRev,
+          AverageDealSize: userSales.length > 0 ? Math.round(totalRev / userSales.length) : 0,
+        };
+      });
+    }
+
     const { data: profiles, error: pError } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, email, role, team:teams(name)')

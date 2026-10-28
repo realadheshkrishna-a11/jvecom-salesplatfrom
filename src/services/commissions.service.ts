@@ -4,9 +4,9 @@
 // ============================================================================
 
 import { supabase } from '@/lib/supabase';
-import { localDb, isLocalStorageMode } from '@/lib/localDb';
+import { localDb, isLocalStorageMode, generateUUID } from '@/lib/localDb';
 import type { CommissionRule, CommissionRecord, PaginatedResponse } from '@/types';
-import { CompensationStatus } from '@/types';
+import { CompensationStatus, CommissionRuleType } from '@/types';
 import type { CommissionRuleInput } from '@/schemas';
 
 interface CommissionFilters {
@@ -33,6 +33,26 @@ export const commissionsService = {
   },
 
   async createRule(orgId: string, input: CommissionRuleInput): Promise<CommissionRule> {
+    if (isLocalStorageMode()) {
+      const newRule: CommissionRule = {
+        id: generateUUID(),
+        organization_id: orgId,
+        rule_name: input.name,
+        name: input.name,
+        type: input.type as CommissionRuleType,
+        rate: input.rate,
+        product_id: input.product_id || null,
+        user_id: input.user_id || null,
+        team_id: input.team_id || null,
+        tier_min: input.tier_min || null,
+        tier_max: input.tier_max || null,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      return localDb.insert<CommissionRule>('commission_rules', newRule);
+    }
+
     const { data, error } = await supabase
       .from('commission_rules')
       .insert({
@@ -55,6 +75,18 @@ export const commissionsService = {
   },
 
   async updateRule(id: string, input: Partial<CommissionRuleInput>): Promise<CommissionRule> {
+    if (isLocalStorageMode()) {
+      return localDb.update<CommissionRule>('commission_rules', id, {
+        ...(input.name !== undefined ? { rule_name: input.name, name: input.name } : {}),
+        ...(input.type !== undefined ? { type: input.type as CommissionRuleType } : {}),
+        ...(input.rate !== undefined ? { rate: input.rate } : {}),
+        ...(input.product_id !== undefined ? { product_id: input.product_id } : {}),
+        ...(input.tier_min !== undefined ? { tier_min: input.tier_min } : {}),
+        ...(input.tier_max !== undefined ? { tier_max: input.tier_max } : {}),
+        updated_at: new Date().toISOString(),
+      } as any);
+    }
+
     const updates: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
     };
@@ -77,6 +109,11 @@ export const commissionsService = {
   },
 
   async deleteRule(id: string): Promise<void> {
+    if (isLocalStorageMode()) {
+      localDb.delete('commission_rules', id);
+      return;
+    }
+
     const { error } = await supabase
       .from('commission_rules')
       .delete()
@@ -132,6 +169,16 @@ export const commissionsService = {
   },
 
   async updateStatus(id: string, status: CompensationStatus): Promise<CommissionRecord> {
+    if (isLocalStorageMode()) {
+      const updates: Partial<CommissionRecord> = {
+        status,
+        updated_at: new Date().toISOString(),
+        ...(status === CompensationStatus.PAID ? { paid_at: new Date().toISOString() } : {}),
+        ...(status === CompensationStatus.APPROVED ? { approved_at: new Date().toISOString() } : {}),
+      };
+      return localDb.update<CommissionRecord>('commission_records', id, updates as any);
+    }
+
     const updates: Record<string, unknown> = {
       status,
       updated_at: new Date().toISOString(),

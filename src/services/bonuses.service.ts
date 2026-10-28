@@ -4,9 +4,9 @@
 // ============================================================================
 
 import { supabase } from '@/lib/supabase';
-import { localDb, isLocalStorageMode } from '@/lib/localDb';
+import { localDb, isLocalStorageMode, generateUUID } from '@/lib/localDb';
 import type { BonusRule, BonusRecord, PaginatedResponse } from '@/types';
-import { CompensationStatus } from '@/types';
+import { CompensationStatus, BonusConditionType, TargetPeriod } from '@/types';
 import type { BonusRuleInput } from '@/schemas';
 
 interface BonusFilters {
@@ -33,6 +33,24 @@ export const bonusesService = {
   },
 
   async createRule(orgId: string, input: BonusRuleInput): Promise<BonusRule> {
+    if (isLocalStorageMode()) {
+      const newRule: BonusRule = {
+        id: generateUUID(),
+        organization_id: orgId,
+        name: input.name,
+        condition_type: input.condition_type as BonusConditionType,
+        condition_value: input.condition_value,
+        bonus_amount: input.bonus_amount,
+        period: input.period as TargetPeriod,
+        product_id: input.product_id || null,
+        team_id: input.team_id || null,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      return localDb.insert<BonusRule>('bonus_rules', newRule);
+    }
+
     const { data, error } = await supabase
       .from('bonus_rules')
       .insert({
@@ -54,6 +72,17 @@ export const bonusesService = {
   },
 
   async updateRule(id: string, input: Partial<BonusRuleInput>): Promise<BonusRule> {
+    if (isLocalStorageMode()) {
+      return localDb.update<BonusRule>('bonus_rules', id, {
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.condition_type !== undefined ? { condition_type: input.condition_type as BonusConditionType } : {}),
+        ...(input.condition_value !== undefined ? { condition_value: input.condition_value } : {}),
+        ...(input.bonus_amount !== undefined ? { bonus_amount: input.bonus_amount } : {}),
+        ...(input.period !== undefined ? { period: input.period as TargetPeriod } : {}),
+        updated_at: new Date().toISOString(),
+      } as any);
+    }
+
     const updates: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
     };
@@ -75,6 +104,11 @@ export const bonusesService = {
   },
 
   async deleteRule(id: string): Promise<void> {
+    if (isLocalStorageMode()) {
+      localDb.delete('bonus_rules', id);
+      return;
+    }
+
     const { error } = await supabase
       .from('bonus_rules')
       .delete()
@@ -129,6 +163,15 @@ export const bonusesService = {
   },
 
   async updateStatus(id: string, status: CompensationStatus): Promise<BonusRecord> {
+    if (isLocalStorageMode()) {
+      const updates: Partial<BonusRecord> = {
+        status,
+        updated_at: new Date().toISOString(),
+        ...(status === CompensationStatus.PAID ? { paid_at: new Date().toISOString() } : {}),
+      };
+      return localDb.update<BonusRecord>('bonus_records', id, updates as any);
+    }
+
     const updates: Record<string, unknown> = {
       status,
       updated_at: new Date().toISOString(),

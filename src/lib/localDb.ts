@@ -1,6 +1,6 @@
 // ============================================================================
 // SalesOS — LocalStorage Database Engine (localDb)
-// Production-grade client-side database provider for offline testing & demo persistence.
+// Production-grade client-side database provider for offline testing & data persistence.
 // Allows all CRUD operations to work instantly and persist across page reloads.
 // ============================================================================
 

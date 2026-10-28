@@ -47,11 +47,27 @@ export default defineConfig((): UserConfig => {
       port: 5173,
       strictPort: false,
       open: false,
+      proxy: {
+        '/api/resend': {
+          target: 'https://api.resend.com',
+          changeOrigin: true,
+          secure: true,
+          rewrite: (path) => path.replace(/^\/api\/resend/, ''),
+        },
+      },
     },
 
     // Preview (production build preview)
     preview: {
       port: 4173,
+      proxy: {
+        '/api/resend': {
+          target: 'https://api.resend.com',
+          changeOrigin: true,
+          secure: true,
+          rewrite: (path) => path.replace(/^\/api\/resend/, ''),
+        },
+      },
     },
 
     // Env file configuration
