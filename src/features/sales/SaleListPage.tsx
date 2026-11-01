@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from '@/components/ui/toast';
 import { formatCurrency } from '@/lib/utils';
 import { Link } from 'react-router-dom';
-import { Plus, Search, RotateCcw, AlertTriangle, FileText, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Search, RotateCcw, AlertTriangle, FileText, CheckCircle2, XCircle, Truck } from 'lucide-react';
 
 export function SaleListPage() {
   const { organization, isAdmin, profile } = useAuth();
@@ -38,78 +38,13 @@ export function SaleListPage() {
         payment_status: statusFilter === 'ALL' ? undefined : statusFilter,
       });
 
-      if (res && res.data.length > 0) {
+      if (res && res.data) {
         setSales(res.data);
       } else {
-        // High fidelity fallback transactions
-        setSales([
-          {
-            id: '99999999-9999-9999-9999-999999999991',
-            organization_id: orgId,
-            user_id: '44444444-4444-4444-4444-444444444441',
-            team_id: null,
-            customer_id: '77777777-7777-7777-7777-777777777771',
-            lead_id: null,
-            invoice_number: 'INV-2026-0041',
-            subtotal: 65000,
-            discount: 0,
-            tax: 0,
-            total: 65000,
-            payment_method: 'UPI' as any,
-            payment_status: PaymentStatus.PAID,
-            sale_date: '2026-09-16T10:30:00Z',
-            notes: 'AI & GenAI Masterclass seat',
-            created_at: '2026-09-16T10:30:00Z',
-            updated_at: '2026-09-16T10:30:00Z',
-            customer: { first_name: 'Rohan', last_name: 'Sharma', email: 'rohan.sharma@techcorp.in' } as any,
-            user: { first_name: 'Arjun', last_name: 'Nair' } as any,
-          },
-          {
-            id: '99999999-9999-9999-9999-999999999992',
-            organization_id: orgId,
-            user_id: '44444444-4444-4444-4444-444444444442',
-            team_id: null,
-            customer_id: '77777777-7777-7777-7777-777777777772',
-            lead_id: null,
-            invoice_number: 'INV-2026-0040',
-            subtotal: 35000,
-            discount: 0,
-            tax: 0,
-            total: 35000,
-            payment_method: 'CARD' as any,
-            payment_status: PaymentStatus.PAID,
-            sale_date: '2026-09-15T14:15:00Z',
-            notes: 'Python Bootcamp full tuition',
-            created_at: '2026-09-15T14:15:00Z',
-            updated_at: '2026-09-15T14:15:00Z',
-            customer: { first_name: 'Priya', last_name: 'Verma', email: 'priya.verma@innovate.co' } as any,
-            user: { first_name: 'Kavita', last_name: 'Menon' } as any,
-          },
-          {
-            id: '99999999-9999-9999-9999-999999999993',
-            organization_id: orgId,
-            user_id: '44444444-4444-4444-4444-444444444441',
-            team_id: null,
-            customer_id: '77777777-7777-7777-7777-777777777773',
-            lead_id: null,
-            invoice_number: 'INV-2026-0039',
-            subtotal: 45000,
-            discount: 0,
-            tax: 0,
-            total: 45000,
-            payment_method: 'BANK_TRANSFER' as any,
-            payment_status: PaymentStatus.PAID,
-            sale_date: '2026-09-15T16:00:00Z',
-            notes: 'Executive Web Development batch',
-            created_at: '2026-09-15T16:00:00Z',
-            updated_at: '2026-09-15T16:00:00Z',
-            customer: { first_name: 'Vikram', last_name: 'Joshi', email: 'vikram.j@tech.io' } as any,
-            user: { first_name: 'Arjun', last_name: 'Nair' } as any,
-          },
-        ]);
+        setSales([]);
       }
-    } catch (err) {
-      console.error('Error fetching sales:', err);
+    } catch (err: unknown) {
+      console.error('Error loading sales ledger:', err);
     } finally {
       setLoading(false);
     }
@@ -150,11 +85,18 @@ export function SaleListPage() {
         title="Sales &amp; Revenue Transactions"
         subtitle="Audited ledger of closed customer contracts, multi-product orders, and refunds."
       >
-        <Button asChild size="sm" className="gap-2">
-          <Link to="/sales/create">
-            <Plus className="w-4 h-4" /> Create Sale
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm" className="gap-2">
+            <Link to="/b2b-orders">
+              <Truck className="w-4 h-4 text-primary" /> JVecom B2B Gateway
+            </Link>
+          </Button>
+          <Button asChild size="sm" className="gap-2">
+            <Link to="/sales/create">
+              <Plus className="w-4 h-4" /> Create Sale
+            </Link>
+          </Button>
+        </div>
       </PageHeader>
 
       {/* Filter and Search */}
@@ -168,27 +110,28 @@ export function SaleListPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-44 bg-card">
-            <SelectValue placeholder="Payment Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Transactions</SelectItem>
-            <SelectItem value={PaymentStatus.PAID}>Paid</SelectItem>
-            <SelectItem value={PaymentStatus.PENDING}>Pending</SelectItem>
-            <SelectItem value={PaymentStatus.REFUNDED}>Refunded</SelectItem>
-            <SelectItem value={PaymentStatus.CANCELLED}>Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="w-full sm:w-48">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="bg-card">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Statuses</SelectItem>
+              <SelectItem value={PaymentStatus.PAID}>Paid</SelectItem>
+              <SelectItem value={PaymentStatus.PENDING}>Pending</SelectItem>
+              <SelectItem value={PaymentStatus.REFUNDED}>Refunded</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {loading ? (
-        <LoadingSpinner text="Querying sales ledger..." />
+        <LoadingSpinner text="Loading sales ledger..." />
       ) : filtered.length === 0 ? (
         <EmptyState
-          title="No sales transactions found"
-          description="Record incoming course orders or closed client contracts to trigger commission & XP."
-          actionLabel="Create Sale"
+          title="No Sales Transactions Found"
+          description={search ? "No sales match your current search query." : "Record your team's first closed contract to trigger commission accrual and milestone XP."}
+          actionLabel="Record New Deal"
           onAction={() => window.location.href = '/sales/create'}
         />
       ) : (
@@ -241,15 +184,17 @@ export function SaleListPage() {
                       {formatCurrency(sale.total)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {isAdmin && sale.payment_status === PaymentStatus.PAID && (
+                      {isAdmin && sale.payment_status !== PaymentStatus.REFUNDED ? (
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40"
                           onClick={() => setSelectedSaleForRefund(sale)}
+                          className="text-xs text-destructive hover:bg-destructive/10"
                         >
                           <RotateCcw className="w-3.5 h-3.5 mr-1" /> Refund
                         </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground font-mono">Audited</span>
                       )}
                     </TableCell>
                   </TableRow>
@@ -260,43 +205,38 @@ export function SaleListPage() {
         </Card>
       )}
 
-      {/* Refund Confirmation Modal */}
+      {/* Refund Confirmation Dialog */}
       <Dialog open={!!selectedSaleForRefund} onOpenChange={(open) => !open && setSelectedSaleForRefund(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-rose-600">
-              <AlertTriangle className="w-5 h-5" />
-              Process Sale Reversal / Refund
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" /> Process Transaction Refund
             </DialogTitle>
             <DialogDescription>
-              Refunding invoice <span className="font-mono font-bold text-foreground">{selectedSaleForRefund?.invoice_number}</span> will automatically reverse awarded XP points, cancel pending commissions, and deduct from target achievements.
+              Refunding invoice <strong>{selectedSaleForRefund?.invoice_number}</strong> ({formatCurrency(selectedSaleForRefund?.total || 0)}) will automatically clawback rep commissions, deduct target quotas, and adjust leaderboard XP.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3 py-2">
-            <div className="p-3 bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 rounded-lg text-xs">
-              Total reversal amount: <span className="font-bold">{formatCurrency(selectedSaleForRefund?.total || 0)}</span>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold">Reason for Refund</label>
-              <Input
-                placeholder="e.g. Customer batch schedule conflict, 7-day money back guarantee"
-                value={refundReason}
-                onChange={(e) => setRefundReason(e.target.value)}
-              />
-            </div>
+            <label className="text-xs font-semibold text-foreground">Refund Reason / Audit Note</label>
+            <Input
+              placeholder="e.g. Customer requested within 7-day satisfaction window..."
+              value={refundReason}
+              onChange={(e) => setRefundReason(e.target.value)}
+            />
           </div>
 
-          <DialogFooter className="pt-2">
-            <Button variant="outline" onClick={() => setSelectedSaleForRefund(null)}>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setSelectedSaleForRefund(null)}>
               Cancel
             </Button>
             <Button
               variant="destructive"
+              size="sm"
+              disabled={processingRefund || !refundReason.trim()}
               onClick={handleProcessRefund}
-              disabled={processingRefund}
             >
-              {processingRefund ? 'Reversing...' : 'Confirm Full Refund'}
+              {processingRefund ? 'Processing...' : 'Confirm Full Refund'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -304,3 +244,5 @@ export function SaleListPage() {
     </div>
   );
 }
+
+export default SaleListPage;

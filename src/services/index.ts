@@ -12,3 +12,4 @@ export * from './notifications.service';
 export * from './audit.service';
 export * from './organizations.service';
 export * from './reports.service';
+export * from './jvecomOrders.service';

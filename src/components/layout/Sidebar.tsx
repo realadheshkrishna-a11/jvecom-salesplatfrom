@@ -10,7 +10,7 @@ import {
   FileText, Bell, Shield, Settings, Building2,
   Briefcase, TrendingUp, ChevronLeft, Menu,
   Handshake, UserCog, Mail, Inbox, Send, FileEdit, Trash2,
-  ChevronDown, ChevronRight,
+  ChevronDown, ChevronRight, Truck,
 } from 'lucide-react';
 import { emailService } from '@/services/email.service';
 import { useState as useStateLocal, useEffect as useEffectLocal } from 'react';
@@ -29,6 +29,7 @@ const navItems: NavItem[] = [
   { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
   { label: 'CRM', path: '/leads', icon: <Handshake size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
   { label: 'Sales', path: '/sales', icon: <ShoppingCart size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
+  { label: 'B2B Orders', path: '/b2b-orders', icon: <Truck size={20} />, roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
   { label: 'Products', path: '/products', icon: <Package size={20} />, roles: [UserRole.ORG_ADMIN] },
   { label: 'Customers', path: '/customers', icon: <UserCircle size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
   { label: 'Mail', path: '/mail', icon: <Mail size={20} />, roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
@@ -48,6 +49,7 @@ const navItems: NavItem[] = [
 
 const superAdminItems: NavItem[] = [
   { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: [UserRole.SUPER_ADMIN] },
+  { label: 'B2B Orders', path: '/b2b-orders', icon: <Truck size={20} />, roles: [UserRole.SUPER_ADMIN] },
   { label: 'Mail', path: '/mail', icon: <Mail size={20} />, roles: [UserRole.SUPER_ADMIN] },
   { label: 'Organizations', path: '/organizations', icon: <Building2 size={20} />, roles: [UserRole.SUPER_ADMIN] },
   { label: 'Users', path: '/admin/users', icon: <UserCog size={20} />, roles: [UserRole.SUPER_ADMIN] },

@@ -54,6 +54,12 @@ export default defineConfig((): UserConfig => {
           secure: true,
           rewrite: (path) => path.replace(/^\/api\/resend/, ''),
         },
+        '/api/jvecom': {
+          target: 'https://wokqhsfrncvswtnukdou.supabase.co/functions/v1/orders-api/v1',
+          changeOrigin: true,
+          secure: true,
+          rewrite: (path) => path.replace(/^\/api\/jvecom/, ''),
+        },
       },
     },
 
@@ -66,6 +72,12 @@ export default defineConfig((): UserConfig => {
           changeOrigin: true,
           secure: true,
           rewrite: (path) => path.replace(/^\/api\/resend/, ''),
+        },
+        '/api/jvecom': {
+          target: 'https://wokqhsfrncvswtnukdou.supabase.co/functions/v1/orders-api/v1',
+          changeOrigin: true,
+          secure: true,
+          rewrite: (path) => path.replace(/^\/api\/jvecom/, ''),
         },
       },
     },

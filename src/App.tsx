@@ -17,6 +17,7 @@ import { DashboardRouter } from '@/features/dashboard/DashboardRouter';
 import { LeadKanbanPage } from '@/features/leads/LeadKanbanPage';
 import { SaleListPage } from '@/features/sales/SaleListPage';
 import { CreateSalePage } from '@/features/sales/CreateSalePage';
+import { B2BOrdersPage } from '@/features/orders/B2BOrdersPage';
 import { ProductListPage } from '@/features/products/ProductListPage';
 import { CustomerListPage } from '@/features/customers/CustomerListPage';
 import { CustomerDetailPage } from '@/features/customers/CustomerDetailPage';
@@ -65,10 +66,12 @@ export function App() {
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard" element={<DashboardRouter />} />
 
-                {/* CRM, Sales & Mail */}
+                {/* CRM, Sales, B2B Orders & Mail */}
                 <Route path="/leads" element={<LeadKanbanPage />} />
                 <Route path="/sales" element={<SaleListPage />} />
                 <Route path="/sales/create" element={<CreateSalePage />} />
+                <Route path="/b2b-orders" element={<B2BOrdersPage />} />
+                <Route path="/orders" element={<Navigate to="/b2b-orders" replace />} />
                 <Route path="/products" element={<ProductListPage />} />
                 <Route path="/customers" element={<CustomerListPage />} />
                 <Route path="/customers/:id" element={<CustomerDetailPage />} />
