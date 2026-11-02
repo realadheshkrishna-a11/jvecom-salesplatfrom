@@ -53,9 +53,7 @@ export const employeeSchema = z.object({
   phone: z.string().optional(),
   username: z.string().optional(),
   employee_id: z.string().optional(),
-  role: z.enum(['ORG_ADMIN', 'MANAGER', 'SALES_REP'], {
-    required_error: 'Please select a role',
-  }),
+  role: z.enum(['ORG_ADMIN', 'MANAGER', 'SALES_REP']),
   team_id: z.string().optional(),
   manager_id: z.string().optional(),
   joining_date: z.string().optional(),

@@ -20,6 +20,18 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { targetSchema, type TargetInput } from '@/schemas';
 
+const defaultTargetValues: TargetInput = {
+  type: 'REVENUE',
+  scope: 'INDIVIDUAL',
+  period: 'MONTHLY',
+  target_value: 500000,
+  period_start: '2026-09-01',
+  period_end: '2026-09-30',
+  product_id: undefined,
+  user_id: undefined,
+  team_id: undefined,
+};
+
 export function TargetListPage() {
   const { organization, isAdmin, profile } = useAuth();
   const orgId = organization?.id || '11111111-1111-1111-1111-111111111111';
@@ -31,14 +43,7 @@ export function TargetListPage() {
 
   const form = useForm<TargetInput>({
     resolver: zodResolver(targetSchema),
-    defaultValues: {
-      type: 'REVENUE',
-      scope: 'INDIVIDUAL',
-      period: 'MONTHLY',
-      target_value: 500000,
-      period_start: '2026-09-01',
-      period_end: '2026-09-30',
-    },
+    defaultValues: defaultTargetValues,
   });
 
   const loadTargets = async () => {
