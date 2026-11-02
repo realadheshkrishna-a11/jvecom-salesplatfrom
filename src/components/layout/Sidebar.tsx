@@ -34,17 +34,17 @@ const navItems: NavItem[] = [
   { label: 'Customers', path: '/customers', icon: <UserCircle size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
   { label: 'Mail', path: '/mail', icon: <Mail size={20} />, roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
   { label: 'Targets', path: '/targets', icon: <Target size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
-  { label: 'Leaderboard', path: '/leaderboard', icon: <Trophy size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
-  { label: 'XP & Achievements', path: '/gamification', icon: <Zap size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.SALES_REP] },
-  { label: 'Commissions', path: '/commissions', icon: <DollarSign size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.SALES_REP] },
-  { label: 'Bonuses', path: '/bonuses', icon: <Gift size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.SALES_REP] },
-  { label: 'Analytics', path: '/analytics', icon: <BarChart3 size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
-  { label: 'Employees', path: '/employees', icon: <Users size={20} />, roles: [UserRole.ORG_ADMIN] },
-  { label: 'Teams', path: '/teams', icon: <Briefcase size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
-  { label: 'Reports', path: '/reports', icon: <FileText size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
-  { label: 'Notifications', path: '/notifications', icon: <Bell size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
-  { label: 'Audit Logs', path: '/audit-logs', icon: <Shield size={20} />, roles: [UserRole.ORG_ADMIN] },
-  { label: 'Settings', path: '/settings', icon: <Settings size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
+  { label: 'Leaderboard', path: '/leaderboard', icon: <Trophy size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP], comingSoon: true },
+  { label: 'XP & Achievements', path: '/gamification', icon: <Zap size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.SALES_REP], comingSoon: true },
+  { label: 'Commissions', path: '/commissions', icon: <DollarSign size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.SALES_REP], comingSoon: true },
+  { label: 'Bonuses', path: '/bonuses', icon: <Gift size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.SALES_REP], comingSoon: true },
+  { label: 'Analytics', path: '/analytics', icon: <BarChart3 size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], comingSoon: true },
+  { label: 'Employees', path: '/employees', icon: <Users size={20} />, roles: [UserRole.ORG_ADMIN], comingSoon: true },
+  { label: 'Teams', path: '/teams', icon: <Briefcase size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], comingSoon: true },
+  { label: 'Reports', path: '/reports', icon: <FileText size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], comingSoon: true },
+  { label: 'Notifications', path: '/notifications', icon: <Bell size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP], comingSoon: true },
+  { label: 'Audit Logs', path: '/audit-logs', icon: <Shield size={20} />, roles: [UserRole.ORG_ADMIN], comingSoon: true },
+  { label: 'Settings', path: '/settings', icon: <Settings size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP], comingSoon: true },
 ];
 
 const superAdminItems: NavItem[] = [
@@ -53,7 +53,7 @@ const superAdminItems: NavItem[] = [
   { label: 'Mail', path: '/mail', icon: <Mail size={20} />, roles: [UserRole.SUPER_ADMIN] },
   { label: 'Organizations', path: '/organizations', icon: <Building2 size={20} />, roles: [UserRole.SUPER_ADMIN] },
   { label: 'Users', path: '/admin/users', icon: <UserCog size={20} />, roles: [UserRole.SUPER_ADMIN] },
-  { label: 'Settings', path: '/settings', icon: <Settings size={20} />, roles: [UserRole.SUPER_ADMIN] },
+  { label: 'Settings', path: '/settings', icon: <Settings size={20} />, roles: [UserRole.SUPER_ADMIN], comingSoon: true },
 ];
 
 export function Sidebar() {
@@ -236,6 +236,11 @@ export function Sidebar() {
                   {item.icon}
                 </span>
                 {!collapsed && <span className="truncate">{item.label}</span>}
+                {!collapsed && item.comingSoon && (
+                  <span className="ml-auto rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-amber-600 dark:text-amber-400">
+                    Soon
+                  </span>
+                )}
                 {isActive && !collapsed && (
                   <div className="ml-auto h-1.5 w-1.5 rounded-full bg-sidebar-primary animate-pulse-soft" />
                 )}
