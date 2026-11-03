@@ -13,30 +13,9 @@ import { TrendingUp, Users, Target, IndianRupee, PieChart as PieIcon, ArrowUpRig
 export function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState('6m');
 
-  const monthlyTrend = [
-    { month: 'Apr 2026', revenue: 1750000, deals: 34, aov: 51470 },
-    { month: 'May 2026', revenue: 2100000, deals: 42, aov: 50000 },
-    { month: 'Jun 2026', revenue: 2450000, deals: 48, aov: 51041 },
-    { month: 'Jul 2026', revenue: 2600000, deals: 50, aov: 52000 },
-    { month: 'Aug 2026', revenue: 2850000, deals: 55, aov: 51818 },
-    { month: 'Sep 2026', revenue: 3100000, deals: 61, aov: 50819 },
-  ];
-
-  const sourceData = [
-    { name: 'Direct Website', value: 1250000, color: '#3b82f6' },
-    { name: 'WhatsApp Campaigns', value: 850000, color: '#10b981' },
-    { name: 'Meta Ads', value: 550000, color: '#8b5cf6' },
-    { name: 'Referrals & Alumni', value: 450000, color: '#f59e0b' },
-  ];
-
-  const funnelData = [
-    { stage: 'Inquiries', count: 280, pct: '100%' },
-    { stage: 'Contacted', count: 210, pct: '75%' },
-    { stage: 'Qualified', count: 140, pct: '50%' },
-    { stage: 'Demo Given', count: 95, pct: '34%' },
-    { stage: 'Negotiation', count: 72, pct: '25%' },
-    { stage: 'Won / Paid', count: 61, pct: '21.7%' },
-  ];
+  const monthlyTrend: { month: string; revenue: number; deals: number; aov: number }[] = [];
+  const sourceData: { name: string; value: number; color: string }[] = [];
+  const funnelData: { stage: string; count: number; pct: string }[] = [];
 
   return (
     <div className="space-y-6">

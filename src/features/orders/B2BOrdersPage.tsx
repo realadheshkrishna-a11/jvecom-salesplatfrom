@@ -52,8 +52,8 @@ import { OrderDetailDialog } from './OrderDetailDialog';
 
 export function B2BOrdersPage() {
   const { organization, profile } = useAuth();
-  const orgId = organization?.id || '11111111-1111-1111-1111-111111111111';
-  const userId = profile?.id || '22222222-2222-2222-2222-222222222222';
+  const orgId = organization?.id || '';
+  const userId = profile?.id || '';
   const { success, error: toastError } = useToast();
   const navigate = useNavigate();
 
@@ -203,7 +203,7 @@ export function B2BOrdersPage() {
 
   const copySampleCurl = () => {
     const curlCmd = `curl -X GET "${config.gatewayUrl}/orders?limit=25" \\\n  -H "Authorization: Bearer ${
-      config.apiKey || 'jvec_live_your_api_key_here'
+      config.apiKey || '<YOUR_JVECOM_API_KEY>'
     }" \\\n  -H "Accept: application/json"`;
     navigator.clipboard.writeText(curlCmd);
     setCopiedCurl(true);
@@ -773,7 +773,7 @@ export function B2BOrdersPage() {
               </div>
               <pre className="bg-muted p-2.5 rounded-lg text-[11px] font-mono overflow-x-auto text-foreground">
 {`curl -X GET "${config.gatewayUrl}/orders?limit=25" \\
-  -H "Authorization: Bearer ${config.apiKey || 'jvec_live_your_api_key_here'}" \\
+  -H "Authorization: Bearer ${config.apiKey || '<YOUR_JVECOM_API_KEY>'}" \\
   -H "Accept: application/json"`}
               </pre>
             </div>

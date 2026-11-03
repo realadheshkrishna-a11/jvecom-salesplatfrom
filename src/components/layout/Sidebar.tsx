@@ -81,12 +81,12 @@ export function Sidebar() {
     return () => clearInterval(interval);
   }, [userEmail]);
 
-  if (!profile) return null;
-
-  const role = profile.role as UserRole;
+  const role = profile?.role as UserRole | undefined;
   const items = role === UserRole.SUPER_ADMIN
     ? superAdminItems
-    : navItems.filter(item => item.roles.includes(role));
+    : profile
+      ? navItems.filter(item => role && item.roles.includes(role))
+      : navItems;
 
   const isMailActive = location.pathname.startsWith('/mail');
   const currentParams = new URLSearchParams(location.search);
@@ -254,18 +254,18 @@ export function Sidebar() {
       <div className="border-t border-sidebar-border/70 p-4">
         <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
           <Avatar className="h-8 w-8 shrink-0">
-            <AvatarImage src={profile.avatar_url || undefined} />
+            <AvatarImage src={profile?.avatar_url || undefined} />
             <AvatarFallback className="bg-sidebar-primary/20 text-sidebar-primary text-xs">
-              {getInitials(profile.first_name, profile.last_name)}
+              {profile ? getInitials(profile.first_name, profile.last_name) : 'SO'}
             </AvatarFallback>
           </Avatar>
           {!collapsed && (
             <div className="flex flex-col min-w-0 animate-fade-in">
               <span className="text-sm font-medium truncate">
-                {profile.first_name} {profile.last_name}
+                {profile ? `${profile.first_name} ${profile.last_name}` : 'SalesOS'}
               </span>
               <span className="text-[10px] text-sidebar-foreground/60 truncate capitalize">
-                {(profile.role ? String(profile.role).replace(/_/g, ' ').toLowerCase() : 'sales rep')}
+                {profile ? String(profile.role).replace(/_/g, ' ').toLowerCase() : 'workspace'}
               </span>
             </div>
           )}

@@ -4,7 +4,7 @@ import { notificationsService } from '@/services/notifications.service';
 
 export function useNotificationCount() {
   const { profile } = useAuth();
-  const [count, setCount] = useState(2); // Demo initial unread count
+  const [count, setCount] = useState(0);
 
   useEffect(() => {
     if (!profile?.id) return;

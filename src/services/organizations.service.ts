@@ -4,7 +4,7 @@
 // ============================================================================
 
 import { supabase } from '@/lib/supabase';
-import { localDb, isLocalStorageMode, INITIAL_ORGANIZATION } from '@/lib/localDb';
+import { localDb, isLocalStorageMode } from '@/lib/localDb';
 import type { Organization, OrganizationSettings } from '@/types';
 import type { OrganizationInput } from '@/schemas';
 
@@ -12,7 +12,8 @@ export const organizationsService = {
   async getById(id: string): Promise<Organization> {
     if (isLocalStorageMode()) {
       const org = localDb.getById<Organization>('organization', id);
-      return org || INITIAL_ORGANIZATION;
+      if (!org) throw new Error('Organization not found');
+      return org;
     }
 
     const { data, error } = await supabase

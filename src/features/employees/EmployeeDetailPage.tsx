@@ -36,36 +36,13 @@ export function EmployeeDetailPage() {
         if (emp.status === 'fulfilled') {
           setEmployee(emp.value);
         } else {
-          // Fallback employee
-          setEmployee({
-            id: id,
-            organization_id: '11111111-1111-1111-1111-111111111111',
-            first_name: 'Arjun',
-            last_name: 'Nair',
-            email: 'arjun.nair@acmelearning.io',
-            phone: '+91 98333 44556',
-            username: 'arjunn',
-            employee_id: 'EMP003',
-            role: 'SALES_REP' as any,
-            team_id: '55555555-5555-5555-5555-555555555551',
-            manager_id: null,
-            avatar_url: null,
-            joining_date: '2026-02-01',
-            status: 'ACTIVE' as any,
-            created_at: '2026-02-01',
-            updated_at: '2026-02-01',
-            team: { name: 'Alpha Squad (North)' } as any,
-          });
+          setEmployee(null);
         }
 
         if (salesRes.status === 'fulfilled' && salesRes.value.data.length > 0) {
           setSales(salesRes.value.data);
         } else {
-          setSales([
-            { id: '1', invoice_number: 'INV-2026-0041', total: 65000, payment_status: 'PAID', sale_date: '2026-09-16' },
-            { id: '2', invoice_number: 'INV-2026-0040', total: 35000, payment_status: 'PAID', sale_date: '2026-09-15' },
-            { id: '3', invoice_number: 'INV-2026-0037', total: 65000, payment_status: 'PAID', sale_date: '2026-09-13' },
-          ]);
+          setSales([]);
         }
 
         if (userXp.status === 'fulfilled' && userXp.value > 0) {

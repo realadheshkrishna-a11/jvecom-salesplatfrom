@@ -32,7 +32,6 @@ export function CustomerDetailPage() {
         if (custRes.status === 'fulfilled') {
           setCustomer(custRes.value);
         } else {
-          // Fallback customer
           setCustomer({
             id,
             organization_id: '11111111-1111-1111-1111-111111111111',
@@ -57,9 +56,7 @@ export function CustomerDetailPage() {
         if (salesRes.status === 'fulfilled' && salesRes.value.data.length > 0) {
           setSales(salesRes.value.data);
         } else {
-          setSales([
-            { id: '1', invoice_number: 'INV-2026-0041', total: 65000, payment_status: 'PAID', sale_date: '2026-09-16' },
-          ]);
+          setSales([]);
         }
       } catch (err) {
         console.error('Error fetching customer details:', err);

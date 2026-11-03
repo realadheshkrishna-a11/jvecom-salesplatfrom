@@ -25,65 +25,7 @@ export function NotificationListPage() {
       if (res && res.length > 0) {
         setNotifications(res);
       } else {
-        // High fidelity fallback notification stream
-        setNotifications([
-          {
-            id: '1',
-            organization_id: '1',
-            user_id: userId,
-            type: 'ACHIEVEMENT_UNLOCKED' as any,
-            title: 'Achievement Unlocked: Centurion!',
-            message: 'You have generated over ₹1,00,000 in monthly revenue. +500 XP points credited to your ledger.',
-            link_url: '/achievements',
-            is_read: false,
-            read_at: null,
-            created_at: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-            entity_type: null,
-            entity_id: null,
-          },
-          {
-            id: '2',
-            organization_id: '1',
-            user_id: userId,
-            type: 'COMMISSION_APPROVED' as any,
-            title: 'Commission Approved: ₹5,200',
-            message: 'Management approved your 8% incentive on deal #INV-2026-0041 (GenAI Masterclass).',
-            link_url: '/commissions',
-            is_read: false,
-            read_at: null,
-            created_at: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-            entity_type: null,
-            entity_id: null,
-          },
-          {
-            id: '3',
-            organization_id: '1',
-            user_id: userId,
-            type: 'FOLLOW_UP_DUE' as any,
-            title: 'Follow-up Due: Priya Verma',
-            message: 'Call scheduled at 03:30 PM regarding Full-Stack Python bootcamp curriculum.',
-            link_url: '/leads',
-            is_read: true,
-            read_at: new Date().toISOString(),
-            created_at: new Date(Date.now() - 1000 * 60 * 360).toISOString(),
-            entity_type: null,
-            entity_id: null,
-          },
-          {
-            id: '4',
-            organization_id: '1',
-            user_id: userId,
-            type: 'TARGET_MILESTONE' as any,
-            title: 'Target Milestone Reached: 75%',
-            message: 'Congratulations! Your monthly revenue reached ₹3,37,500 of your ₹4,50,000 quota.',
-            link_url: '/targets',
-            is_read: true,
-            read_at: new Date().toISOString(),
-            created_at: new Date(Date.now() - 1000 * 60 * 1440).toISOString(),
-            entity_type: null,
-            entity_id: null,
-          },
-        ]);
+        setNotifications([]);
       }
     } catch (err) {
       console.error('Error loading notifications:', err);

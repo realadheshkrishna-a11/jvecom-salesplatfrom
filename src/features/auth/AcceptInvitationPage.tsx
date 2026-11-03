@@ -133,7 +133,7 @@ export function AcceptInvitationPage() {
               {loading ? 'Activating account...' : 'Activate & Enter SalesOS'}
             </Button>
             <Button asChild variant="ghost" className="w-full">
-              <Link to="/login">Already have an account? Sign in</Link>
+              <Link to="/dashboard">Return to dashboard</Link>
             </Button>
           </CardFooter>
         </form>

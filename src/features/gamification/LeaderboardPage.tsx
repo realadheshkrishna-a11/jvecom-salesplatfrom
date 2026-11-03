@@ -27,69 +27,7 @@ export function LeaderboardPage() {
         if (res && res.length > 0) {
           setEntries(res);
         } else {
-          // High fidelity fallback leaderboard
-          setEntries([
-            {
-              rank: 1,
-              user_id: '44444444-4444-4444-4444-444444444441',
-              first_name: 'Arjun',
-              last_name: 'Nair',
-              avatar_url: null,
-              team_name: 'Alpha Squad (North)',
-              revenue: 650000,
-              sales_count: 11,
-              xp: 3400,
-              target_achievement: 130,
-            },
-            {
-              rank: 2,
-              user_id: '44444444-4444-4444-4444-444444444442',
-              first_name: 'Kavita',
-              last_name: 'Menon',
-              avatar_url: null,
-              team_name: 'Beta Sharks (West)',
-              revenue: 520000,
-              sales_count: 9,
-              xp: 2900,
-              target_achievement: 104,
-            },
-            {
-              rank: 3,
-              user_id: '44444444-4444-4444-4444-444444444443',
-              first_name: 'Suresh',
-              last_name: 'Iyer',
-              avatar_url: null,
-              team_name: 'Alpha Squad (North)',
-              revenue: 440000,
-              sales_count: 8,
-              xp: 2450,
-              target_achievement: 97.7,
-            },
-            {
-              rank: 4,
-              user_id: '44444444-4444-4444-4444-444444444444',
-              first_name: 'Pooja',
-              last_name: 'Deshmukh',
-              avatar_url: null,
-              team_name: 'Beta Sharks (West)',
-              revenue: 380000,
-              sales_count: 7,
-              xp: 2100,
-              target_achievement: 95,
-            },
-            {
-              rank: 5,
-              user_id: '44444444-4444-4444-4444-444444444445',
-              first_name: 'Manish',
-              last_name: 'Kumar',
-              avatar_url: null,
-              team_name: 'Alpha Squad (North)',
-              revenue: 290000,
-              sales_count: 5,
-              xp: 1650,
-              target_achievement: 72,
-            },
-          ]);
+          setEntries([]);
         }
       } catch (err) {
         console.error('Error in Leaderboard:', err);

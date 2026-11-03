@@ -36,14 +36,7 @@ export function XPPage() {
         if (txRes.status === 'fulfilled' && txRes.value.length > 0) {
           setTransactions(txRes.value);
         } else {
-          // High fidelity fallback XP transactions
-          setTransactions([
-            { id: '1', organization_id: '1', user_id: userId, points: 150, source_type: 'SALE' as any, source_id: null, rule_id: null, description: 'Closed GenAI Masterclass deal #INV-2026-0041', created_at: '2026-09-16T10:30:00Z', reversed_at: null },
-            { id: '2', organization_id: '1', user_id: userId, points: 500, source_type: 'ACHIEVEMENT' as any, source_id: null, rule_id: null, description: 'Unlocked Centurion badge (₹100k revenue in a month)', created_at: '2026-09-15T18:00:00Z', reversed_at: null },
-            { id: '3', organization_id: '1', user_id: userId, points: 100, source_type: 'SALE' as any, source_id: null, rule_id: null, description: 'Closed Python Bootcamp deal #INV-2026-0040', created_at: '2026-09-15T14:15:00Z', reversed_at: null },
-            { id: '4', organization_id: '1', user_id: userId, points: 300, source_type: 'TARGET_ACHIEVEMENT' as any, source_id: null, rule_id: null, description: 'Hit 75% monthly target milestone', created_at: '2026-09-14T16:00:00Z', reversed_at: null },
-            { id: '5', organization_id: '1', user_id: userId, points: 150, source_type: 'ACHIEVEMENT' as any, source_id: null, rule_id: null, description: 'Unlocked First Blood achievement', created_at: '2026-09-10T11:00:00Z', reversed_at: null },
-          ]);
+          setTransactions([]);
         }
       } catch (err) {
         console.error('Error loading XP data:', err);

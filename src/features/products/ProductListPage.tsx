@@ -59,65 +59,7 @@ export function ProductListPage() {
       if (res && res.data.length > 0) {
         setProducts(res.data);
       } else {
-        // High fidelity fallback course catalog
-        setProducts([
-          {
-            id: '66666666-6666-6666-6666-666666666661',
-            organization_id: orgId,
-            name: 'Full-Stack Python Bootcamp',
-            sku: 'SKU-PY-01',
-            category: 'Software Development',
-            description: 'Comprehensive 6-month Python, Django, React live training program',
-            cost: 15000,
-            selling_price: 35000,
-            status: ProductStatus.ACTIVE,
-            created_at: '2026-01-10',
-            updated_at: '2026-01-10',
-            image_url: null,
-          },
-          {
-            id: '66666666-6666-6666-6666-666666666662',
-            organization_id: orgId,
-            name: 'AI & GenAI Masterclass',
-            sku: 'SKU-AI-02',
-            category: 'Data & AI',
-            description: 'LLMs, Prompt Engineering, RAG Systems, Vector DBs and agentic workflows',
-            cost: 22000,
-            selling_price: 65000,
-            status: ProductStatus.ACTIVE,
-            created_at: '2026-01-15',
-            updated_at: '2026-01-15',
-            image_url: null,
-          },
-          {
-            id: '66666666-6666-6666-6666-666666666663',
-            organization_id: orgId,
-            name: 'Executive Web Development',
-            sku: 'SKU-WEB-03',
-            category: 'Software Development',
-            description: 'TypeScript, Next.js, Cloud Architectures for working tech leads',
-            cost: 18000,
-            selling_price: 45000,
-            status: ProductStatus.ACTIVE,
-            created_at: '2026-01-20',
-            updated_at: '2026-01-20',
-            image_url: null,
-          },
-          {
-            id: '66666666-6666-6666-6666-666666666664',
-            organization_id: orgId,
-            name: 'Advanced Business Analytics with Excel & PowerBI',
-            sku: 'SKU-BI-04',
-            category: 'Analytics',
-            description: 'Financial modeling, PowerBI dashboards, SQL analytics',
-            cost: 8000,
-            selling_price: 25000,
-            status: ProductStatus.ACTIVE,
-            created_at: '2026-02-01',
-            updated_at: '2026-02-01',
-            image_url: null,
-          },
-        ]);
+        setProducts([]);
       }
     } catch (err) {
       console.error('Error fetching products:', err);

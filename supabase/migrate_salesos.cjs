@@ -607,17 +607,7 @@ async function run() {
     }
   }
 
-  // Step 15: Run Seed Data (005_seed.sql)
-  console.log('1️⃣5️⃣ Running 005_seed.sql...');
-  try {
-    const seedSql = fs.readFileSync(path.join(__dirname, 'migrations', '005_seed.sql'), 'utf8');
-    await client.query(seedSql);
-    console.log('  ✅ Seed data inserted successfully');
-  } catch (err) {
-    console.warn(`  ⚠️ Seed data notice: ${err.message}`);
-  }
-
-  // Step 16: Check counts
+  // Step 15: Check counts
   console.log('\n📊 Migration complete! Table counts:');
   const checkTables = [
     'organizations', 'profiles', 'teams', 'products', 'customers', 'leads',

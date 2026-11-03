@@ -13,41 +13,17 @@ import { reportsService } from '@/services/reports.service';
 export function CompensationDashboardPage() {
   const { profile, isAdmin } = useAuth();
 
-  const statements = [
-    {
-      period: 'August 2026',
-      rep: 'Arjun Nair',
-      grossSales: 650000,
-      qualifyingSales: 650000,
-      commission: 32500,
-      bonus: 20000,
-      adjustments: 0,
-      totalPayable: 52500,
-      status: 'PAID',
-    },
-    {
-      period: 'August 2026',
-      rep: 'Kavita Menon',
-      grossSales: 520000,
-      qualifyingSales: 520000,
-      commission: 26000,
-      bonus: 15000,
-      adjustments: 0,
-      totalPayable: 41000,
-      status: 'PAID',
-    },
-    {
-      period: 'September 2026 (Live)',
-      rep: 'Arjun Nair',
-      grossSales: 440000,
-      qualifyingSales: 440000,
-      commission: 22000,
-      bonus: 15000,
-      adjustments: 0,
-      totalPayable: 37000,
-      status: 'PENDING_APPROVAL',
-    },
-  ];
+  const statements: {
+    period: string;
+    rep: string;
+    grossSales: number;
+    qualifyingSales: number;
+    commission: number;
+    bonus: number;
+    adjustments: number;
+    totalPayable: number;
+    status: string;
+  }[] = [];
 
   const handleExport = () => {
     reportsService.exportCSV(statements, 'compensation-statements');

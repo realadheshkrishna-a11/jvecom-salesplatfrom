@@ -22,37 +22,23 @@ import {
 
 export function AdminDashboard() {
   const { organization } = useAuth();
-  const orgId = organization?.id || '11111111-1111-1111-1111-111111111111';
+  const orgId = organization?.id || '';
 
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
-    totalRevenue: 2450000,
-    paidSalesCount: 48,
-    avgDealSize: 51041,
-    activeLeads: 62,
-    conversionRate: 28.4,
-    commissionPayable: 122500,
+    totalRevenue: 0,
+    paidSalesCount: 0,
+    avgDealSize: 0,
+    activeLeads: 0,
+    conversionRate: 0,
+    commissionPayable: 0,
   });
 
   const [recentSales, setRecentSales] = useState<any[]>([]);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
 
-  // Demo trend data for charts
-  const revenueTrend = [
-    { month: 'Jan', revenue: 1400000, target: 1200000 },
-    { month: 'Feb', revenue: 1650000, target: 1400000 },
-    { month: 'Mar', revenue: 1900000, target: 1600000 },
-    { month: 'Apr', revenue: 1750000, target: 1800000 },
-    { month: 'May', revenue: 2100000, target: 1900000 },
-    { month: 'Jun', revenue: 2450000, target: 2000000 },
-  ];
-
-  const productDistribution = [
-    { name: 'AI & GenAI Masterclass', value: 975000, color: '#3b82f6' },
-    { name: 'Python Bootcamp', value: 525000, color: '#10b981' },
-    { name: 'Web Dev Executive', value: 450000, color: '#8b5cf6' },
-    { name: 'Business Analytics', value: 500000, color: '#f59e0b' },
-  ];
+  const revenueTrend: { month: string; revenue: number; target: number }[] = [];
+  const productDistribution: { name: string; value: number; color: string }[] = [];
 
   useEffect(() => {
     async function loadData() {
@@ -67,14 +53,7 @@ export function AdminDashboard() {
         if (salesRes.status === 'fulfilled' && salesRes.value.data.length > 0) {
           setRecentSales(salesRes.value.data);
         } else {
-          // Fallback realistic sales
-          setRecentSales([
-            { id: '1', invoice_number: 'INV-2026-0041', customer: { first_name: 'Rahul', last_name: 'Mehta' }, total: 65000, payment_status: 'PAID', sale_date: '2026-09-16' },
-            { id: '2', invoice_number: 'INV-2026-0040', customer: { first_name: 'Ananya', last_name: 'Roy' }, total: 35000, payment_status: 'PAID', sale_date: '2026-09-15' },
-            { id: '3', invoice_number: 'INV-2026-0039', customer: { first_name: 'Vikram', last_name: 'Joshi' }, total: 45000, payment_status: 'PAID', sale_date: '2026-09-15' },
-            { id: '4', invoice_number: 'INV-2026-0038', customer: { first_name: 'Deepak', last_name: 'Gupta' }, total: 25000, payment_status: 'PAID', sale_date: '2026-09-14' },
-            { id: '5', invoice_number: 'INV-2026-0037', customer: { first_name: 'Neha', last_name: 'Singh' }, total: 65000, payment_status: 'PAID', sale_date: '2026-09-13' },
-          ]);
+          setRecentSales([]);
         }
 
         if (lbRes.status === 'fulfilled' && lbRes.value.length > 0) {
@@ -94,12 +73,7 @@ export function AdminDashboard() {
             .map((u, idx) => ({ ...u, rank: idx + 1 }));
           setLeaderboard(sorted);
         } else {
-          setLeaderboard([
-            { rank: 1, first_name: 'Arjun', last_name: 'Nair', team_name: 'Alpha Squad (North)', revenue: 650000, total_revenue: 650000, sales_count: 11, total_sales: 11, xp: 3400 },
-            { rank: 2, first_name: 'Kavita', last_name: 'Menon', team_name: 'Beta Sharks (West)', revenue: 520000, total_revenue: 520000, sales_count: 9, total_sales: 9, xp: 2900 },
-            { rank: 3, first_name: 'Suresh', last_name: 'Iyer', team_name: 'Alpha Squad (North)', revenue: 440000, total_revenue: 440000, sales_count: 8, total_sales: 8, xp: 2450 },
-            { rank: 4, first_name: 'Pooja', last_name: 'Deshmukh', team_name: 'Beta Sharks (West)', revenue: 380000, total_revenue: 380000, sales_count: 7, total_sales: 7, xp: 2100 },
-          ]);
+          setLeaderboard([]);
         }
 
         if (statsRes.status === 'fulfilled' && statsRes.value.totalRevenue > 0) {
@@ -130,7 +104,7 @@ export function AdminDashboard() {
         <div>
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">September 2026 · Performance</p>
           <h1 className="text-3xl font-semibold tracking-[-0.04em] text-foreground">Business at a glance</h1>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">A focused view of revenue, momentum, and team performance for {organization?.name || 'Acme Learning'}.</p>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">A focused view of revenue, momentum, and team performance for {organization?.name || 'your organization'}.</p>
         </div>
         <Button variant="outline" size="sm" className="h-9 gap-2 rounded-lg border-border/80 bg-card px-3.5 text-xs font-medium">
           <Calendar className="h-3.5 w-3.5 text-muted-foreground" />

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import {
-  emailService, seedDemoEmails,
+  emailService,
   type EmailThread, type EmailMessage, type EmailFolder, type EmailSettings
 } from '@/services/email.service';
 import { cn } from '@/lib/utils';
@@ -700,9 +700,8 @@ export function MailPage() {
     }
   }, [searchParams]);
 
-  // Seed demo data on mount and subscribe to realtime email updates
+  // Load persisted mail and subscribe to realtime email updates
   useEffect(() => {
-    emailService.seedDemoEmails(userEmail, userName);
     refresh();
 
     const unsubscribe = emailService.subscribe(() => {

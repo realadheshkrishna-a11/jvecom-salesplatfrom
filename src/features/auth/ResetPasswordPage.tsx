@@ -34,7 +34,7 @@ export function ResetPasswordPage() {
       toastError('Failed to update password', error.message);
     } else {
       toastSuccess('Password updated!', 'You can now log in with your new password.');
-      navigate('/login');
+      navigate('/dashboard');
     }
   };
 
@@ -93,7 +93,7 @@ export function ResetPasswordPage() {
               {loading ? 'Updating...' : 'Update Password & Log In'}
             </Button>
             <Button asChild variant="ghost" className="w-full">
-              <Link to="/login">Cancel</Link>
+              <Link to="/dashboard">Cancel</Link>
             </Button>
           </CardFooter>
         </form>

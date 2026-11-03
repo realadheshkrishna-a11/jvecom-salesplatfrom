@@ -5,12 +5,6 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ComingSoon } from '@/components/common/ComingSoon';
 
-// Auth Pages
-import { LoginPage } from '@/features/auth/LoginPage';
-import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage';
-import { ResetPasswordPage } from '@/features/auth/ResetPasswordPage';
-import { AcceptInvitationPage } from '@/features/auth/AcceptInvitationPage';
-
 // Dashboards
 import { DashboardRouter } from '@/features/dashboard/DashboardRouter';
 
@@ -73,13 +67,7 @@ export function App() {
       <AuthProvider>
         <ToastProvider>
           <Routes>
-            {/* Public Auth Routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
-
-            {/* Protected SaaS App Routes */}
+            {/* SaaS App Routes */}
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />

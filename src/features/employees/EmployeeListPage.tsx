@@ -54,14 +54,7 @@ export function EmployeeListPage() {
       if (empRes.status === 'fulfilled' && empRes.value.data.length > 0) {
         setEmployees(empRes.value.data);
       } else {
-        // High fidelity fallback employees
-        setEmployees([
-          { id: '1', organization_id: orgId, first_name: 'Abhijith', last_name: 'Up', email: 'rajesh.admin@acmelearning.io', role: UserRole.ORG_ADMIN, status: EmployeeStatus.ACTIVE, team: { name: 'Leadership' } as any, created_at: '2026-01-10', updated_at: '2026-01-10', phone: '+91 98111 22334', username: 'rajeshk', employee_id: 'EMP001', manager_id: null, team_id: null, avatar_url: null, joining_date: '2026-01-10' },
-          { id: '2', organization_id: orgId, first_name: 'Vikram', last_name: 'Malhotra', email: 'vikram.mgr@acmelearning.io', role: UserRole.MANAGER, status: EmployeeStatus.ACTIVE, team: { name: 'Alpha Squad' } as any, created_at: '2026-01-15', updated_at: '2026-01-15', phone: '+91 98222 33445', username: 'vikramm', employee_id: 'EMP002', manager_id: null, team_id: null, avatar_url: null, joining_date: '2026-01-15' },
-          { id: '3', organization_id: orgId, first_name: 'Arjun', last_name: 'Nair', email: 'arjun.nair@acmelearning.io', role: UserRole.SALES_REP, status: EmployeeStatus.ACTIVE, team: { name: 'Alpha Squad' } as any, created_at: '2026-02-01', updated_at: '2026-02-01', phone: '+91 98333 44556', username: 'arjunn', employee_id: 'EMP003', manager_id: null, team_id: null, avatar_url: null, joining_date: '2026-02-01' },
-          { id: '4', organization_id: orgId, first_name: 'Kavita', last_name: 'Menon', email: 'kavita.menon@acmelearning.io', role: UserRole.SALES_REP, status: EmployeeStatus.ACTIVE, team: { name: 'Beta Sharks' } as any, created_at: '2026-02-15', updated_at: '2026-02-15', phone: '+91 98444 55667', username: 'kavitam', employee_id: 'EMP004', manager_id: null, team_id: null, avatar_url: null, joining_date: '2026-02-15' },
-          { id: '5', organization_id: orgId, first_name: 'Suresh', last_name: 'Iyer', email: 'suresh.iyer@acmelearning.io', role: UserRole.SALES_REP, status: EmployeeStatus.INVITED, team: { name: 'Alpha Squad' } as any, created_at: '2026-03-01', updated_at: '2026-03-01', phone: '+91 98555 66778', username: 'sureshi', employee_id: 'EMP005', manager_id: null, team_id: null, avatar_url: null, joining_date: '2026-03-01' },
-        ]);
+        setEmployees([]);
       }
 
       if (teamRes.status === 'fulfilled') {

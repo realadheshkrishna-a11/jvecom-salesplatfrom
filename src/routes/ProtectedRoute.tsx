@@ -1,9 +1,9 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { LoadingSpinner } from '@/components/common/EmptyState';
 
 export function ProtectedRoute() {
-  const { profile, loading, initialized } = useAuth();
+  const { loading, initialized } = useAuth();
 
   if (loading && !initialized) {
     return (
@@ -11,10 +11,6 @@ export function ProtectedRoute() {
         <LoadingSpinner text="Connecting to SalesOS..." />
       </div>
     );
-  }
-
-  if (!profile) {
-    return <Navigate to="/login" replace />;
   }
 
   return <Outlet />;

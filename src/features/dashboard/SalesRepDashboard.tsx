@@ -17,31 +17,22 @@ export function SalesRepDashboard() {
   const { profile } = useAuth();
 
   const repStats = {
-    revenue: 440000,
-    target: 450000,
-    achievement: 97.7,
-    dealsClosed: 8,
-    commissionEarned: 22000,
-    bonusPending: 15000,
-    currentXP: 2450,
-    nextLevelXP: 2500,
-    levelName: 'Achiever',
-    levelRank: 2,
-    nextLevelName: 'Closer',
-    rank: 3,
+    revenue: 0,
+    target: 0,
+    achievement: 0,
+    dealsClosed: 0,
+    commissionEarned: 0,
+    bonusPending: 0,
+    currentXP: 0,
+    nextLevelXP: 0,
+    levelName: '',
+    levelRank: 0,
+    nextLevelName: '',
+    rank: 0,
   };
 
-  const todayFollowUps = [
-    { id: '1', customer: 'Rohan Sharma', time: '11:00 AM', type: 'Call', notes: 'Discuss AI bootcamp cohort dates' },
-    { id: '2', customer: 'Priya Verma', time: '03:30 PM', type: 'Demo', notes: 'Full-stack course curriculum walkthrough' },
-    { id: '3', customer: 'Amit Patel', time: '05:00 PM', type: 'WhatsApp', notes: 'Send payment discount coupon link' },
-  ];
-
-  const recentAchievements = [
-    { title: 'First Blood', desc: 'Closed your first sale', icon: Zap, color: 'text-amber-500' },
-    { title: 'Hat-Trick Hero', desc: '3 deals in 24 hours', icon: Flame, color: 'text-rose-500' },
-    { title: 'Target Destroyer', desc: 'Reached 100% quota', icon: Trophy, color: 'text-blue-500' },
-  ];
+  const todayFollowUps: { id: string; customer: string; time: string; type: string; notes: string }[] = [];
+  const recentAchievements: { title: string; desc: string; icon: typeof Zap; color: string }[] = [];
 
   const xpProgress = Math.round((repStats.currentXP / repStats.nextLevelXP) * 100);
 

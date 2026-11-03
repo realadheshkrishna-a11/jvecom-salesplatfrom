@@ -41,45 +41,7 @@ export function TeamListPage() {
       if (res && res.length > 0) {
         setTeams(res);
       } else {
-        // Fallback realistic teams
-        setTeams([
-          {
-            id: '55555555-5555-5555-5555-555555555551',
-            organization_id: orgId,
-            name: 'Alpha Squad (North)',
-            description: 'North Region Enterprise & Retail Sales Acceleration team',
-            manager_id: '33333333-3333-3333-3333-333333333331',
-            status: 'ACTIVE' as any,
-            created_at: '2026-01-10',
-            updated_at: '2026-01-10',
-            manager: { first_name: 'Vikram', last_name: 'Malhotra' } as any,
-            member_count: 5,
-          },
-          {
-            id: '55555555-5555-5555-5555-555555555552',
-            organization_id: orgId,
-            name: 'Beta Sharks (West)',
-            description: 'West Region Digital Growth, Outbound & Tech bootcamps',
-            manager_id: null,
-            status: 'ACTIVE' as any,
-            created_at: '2026-01-15',
-            updated_at: '2026-01-15',
-            manager: { first_name: 'Anjali', last_name: 'Desai' } as any,
-            member_count: 4,
-          },
-          {
-            id: '55555555-5555-5555-5555-555555555553',
-            organization_id: orgId,
-            name: 'Gamma Hawks (South)',
-            description: 'South Region Academic Partnerships and Corporate Upskilling',
-            manager_id: null,
-            status: 'ACTIVE' as any,
-            created_at: '2026-02-01',
-            updated_at: '2026-02-01',
-            manager: { first_name: 'Karthik', last_name: 'Rao' } as any,
-            member_count: 3,
-          },
-        ]);
+        setTeams([]);
       }
     } catch (err) {
       console.error('Error fetching teams:', err);

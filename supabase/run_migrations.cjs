@@ -19,7 +19,6 @@ const migrations = [
   '002_rls_policies.sql',
   '003_functions.sql',
   '004_triggers.sql',
-  '005_seed.sql',
   '006_email_threads.sql',
 ];
 

@@ -53,62 +53,7 @@ export function TargetListPage() {
       if (res && res.data.length > 0) {
         setTargets(res.data);
       } else {
-        // High fidelity fallback target quotas
-        setTargets([
-          {
-            id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-            organization_id: orgId,
-            user_id: profile?.id || '44444444-4444-4444-4444-444444444441',
-            team_id: null,
-            type: TargetType.REVENUE,
-            scope: TargetScope.INDIVIDUAL,
-            period: TargetPeriod.MONTHLY,
-            target_value: 450000,
-            current_value: 440000,
-            period_start: '2026-09-01',
-            period_end: '2026-09-30',
-            product_id: null,
-            is_active: true,
-            created_at: '2026-09-01',
-            updated_at: '2026-09-15',
-            user: { first_name: 'Arjun', last_name: 'Nair' } as any,
-          },
-          {
-            id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
-            organization_id: orgId,
-            user_id: null,
-            team_id: '55555555-5555-5555-5555-555555555551',
-            type: TargetType.REVENUE,
-            scope: TargetScope.TEAM,
-            period: TargetPeriod.MONTHLY,
-            target_value: 1500000,
-            current_value: 1250000,
-            period_start: '2026-09-01',
-            period_end: '2026-09-30',
-            product_id: null,
-            is_active: true,
-            created_at: '2026-09-01',
-            updated_at: '2026-09-15',
-            team: { name: 'Alpha Squad (North)' } as any,
-          },
-          {
-            id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
-            organization_id: orgId,
-            user_id: null,
-            team_id: null,
-            type: TargetType.REVENUE,
-            scope: TargetScope.ORGANIZATION,
-            period: TargetPeriod.MONTHLY,
-            target_value: 3000000,
-            current_value: 2450000,
-            period_start: '2026-09-01',
-            period_end: '2026-09-30',
-            product_id: null,
-            is_active: true,
-            created_at: '2026-09-01',
-            updated_at: '2026-09-15',
-          },
-        ]);
+        setTargets([]);
       }
     } catch (err) {
       console.error('Error fetching targets:', err);

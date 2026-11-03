@@ -28,15 +28,7 @@ export function AchievementsPage() {
         if (achRes.status === 'fulfilled' && achRes.value.length > 0) {
           setAchievements(achRes.value);
         } else {
-          // High fidelity fallback badges
-          setAchievements([
-            { id: '1', organization_id: orgId, name: 'First Blood', description: 'Closed your first qualified sale on SalesOS', icon: 'Zap', xp_reward: 150, condition_type: 'SALES_COUNT', condition_value: 1, is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' },
-            { id: '2', organization_id: orgId, name: 'Centurion', description: 'Generated ₹1,00,000+ in revenue in a single month', icon: 'Award', xp_reward: 500, condition_type: 'REVENUE', condition_value: 100000, is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' },
-            { id: '3', organization_id: orgId, name: 'Hat-Trick Hero', description: 'Closed 3 customer deals in a single 24-hour day', icon: 'Flame', xp_reward: 300, condition_type: 'SALES_COUNT', condition_value: 3, is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' },
-            { id: '4', organization_id: orgId, name: 'Target Destroyer', description: 'Attained 100% of your monthly sales quota target', icon: 'Target', xp_reward: 400, condition_type: 'TARGET_ACHIEVEMENT', condition_value: 100, is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' },
-            { id: '5', organization_id: orgId, name: 'Pinnacle Master', description: '150% quota overachievement in a single performance period', icon: 'Trophy', xp_reward: 1000, condition_type: 'TARGET_ACHIEVEMENT', condition_value: 150, is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' },
-            { id: '6', organization_id: orgId, name: 'Speed Demon', description: 'Converted a lead from New to Won within 48 hours', icon: 'Star', xp_reward: 250, condition_type: 'TIME_TO_CLOSE', condition_value: 48, is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' },
-          ]);
+          setAchievements([]);
         }
 
         if (userAchRes.status === 'fulfilled' && userAchRes.value.length > 0) {

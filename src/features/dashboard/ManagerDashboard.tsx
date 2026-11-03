@@ -16,21 +16,16 @@ export function ManagerDashboard() {
   const [loading, setLoading] = useState(false);
 
   const teamMetrics = {
-    teamName: 'Alpha Squad (North)',
-    revenue: 1250000,
-    target: 1500000,
-    achievement: 83.3,
-    activeReps: 4,
-    dealsClosed: 26,
-    avgDeal: 48076,
+    teamName: profile?.team?.name || 'Team',
+    revenue: 0,
+    target: 0,
+    achievement: 0,
+    activeReps: 0,
+    dealsClosed: 0,
+    avgDeal: 0,
   };
 
-  const repPerformance = [
-    { name: 'Arjun Nair', deals: 11, revenue: 650000, target: 500000, pct: 130, status: 'Exceeding' },
-    { name: 'Suresh Iyer', deals: 8, revenue: 440000, target: 450000, pct: 97.7, status: 'On Track' },
-    { name: 'Manish Kumar', deals: 4, revenue: 110000, target: 300000, pct: 36.6, status: 'Needs Support' },
-    { name: 'Ritu Sen', deals: 3, revenue: 50000, target: 250000, pct: 20.0, status: 'Needs Support' },
-  ];
+  const repPerformance: { name: string; deals: number; revenue: number; target: number; pct: number; status: string }[] = [];
 
   return (
     <div className="space-y-6">

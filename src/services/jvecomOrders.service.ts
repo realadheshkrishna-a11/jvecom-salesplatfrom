@@ -35,7 +35,6 @@ const STORAGE_KEYS = {
 };
 
 // Purely real-time: Empty array export preserved for type compatibility.
-export const INITIAL_B2B_ORDERS: JVecomOrder[] = [];
 
 // =============================================================================
 // Exhaustive Address Extractor

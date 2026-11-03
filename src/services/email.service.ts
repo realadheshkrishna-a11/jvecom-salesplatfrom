@@ -122,119 +122,6 @@ export function generateUUID(): string {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Initial Seed Data (Valid UUIDs for Supabase compatibility)
-// ---------------------------------------------------------------------------
-const SEED_THREADS: EmailThread[] = [
-  {
-    id: 'e1111111-1111-4111-8111-111111111111',
-    organization_id: DEFAULT_ORG_ID,
-    subject: 'Follow-up on Wholesale Sourcing Agreement — JVECOM B2B',
-    unread_count: 1,
-    participants: ['admin@jvecom.in', 'rohan.sharma@clickze.com'],
-    last_message_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    folder: 'inbox',
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-  },
-  {
-    id: 'e2222222-2222-4222-8222-222222222222',
-    organization_id: DEFAULT_ORG_ID,
-    subject: 'Invoice INV-2026-001 — Payment Receipt & Delivery Dispatch',
-    unread_count: 0,
-    participants: ['admin@jvecom.in', 'priya.verma@clovy.in'],
-    last_message_at: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-    folder: 'sent',
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
-  },
-  {
-    id: 'e3333333-3333-4333-8333-333333333333',
-    organization_id: DEFAULT_ORG_ID,
-    subject: 'Bulk Sourcing Request — 1,000 Shoe Dryers for Kerala Retail Stores',
-    unread_count: 2,
-    participants: ['admin@jvecom.in', 'procurement@kadalundiretail.in'],
-    last_message_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-    folder: 'inbox',
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 25).toISOString(),
-  },
-  {
-    id: 'ed111111-1111-4111-8111-111111111111',
-    organization_id: DEFAULT_ORG_ID,
-    subject: '[Draft] Quotation Proposal for Private Label Packaging 5,000 Units',
-    unread_count: 0,
-    participants: ['orders@sb-retail.in'],
-    last_message_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    folder: 'drafts',
-    is_draft: true,
-    created_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-  },
-];
-
-const SEED_MESSAGES: EmailMessage[] = [
-  {
-    id: 'm1111111-1111-4111-8111-111111111111',
-    thread_id: 'e1111111-1111-4111-8111-111111111111',
-    organization_id: DEFAULT_ORG_ID,
-    from_address: 'rohan.sharma@clickze.com',
-    from_name: 'Rohan Sharma (Clickze)',
-    to_addresses: ['admin@jvecom.in'],
-    cc_addresses: [],
-    subject: 'Follow-up on Wholesale Sourcing Agreement — JVECOM B2B',
-    body_html: '<p>Hi Adhesh,</p><p>We have reviewed the quotation for the custom sourcing contract. The pricing looks competitive and within our budget. Could you share the estimated transit time for the first batch?</p><p>Thanks,<br/>Rohan Sharma<br/>Founder, Clickze Ecom</p>',
-    body_text: 'Hi Adhesh,\n\nWe have reviewed the quotation for the custom sourcing contract. The pricing looks competitive and within our budget. Could you share the estimated transit time for the first batch?\n\nThanks,\nRohan Sharma\nFounder, Clickze Ecom',
-    status: 'sent',
-    delivery_status: 'live_delivered',
-    is_read: false,
-    sent_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-  },
-  {
-    id: 'm2222222-2222-4222-8222-222222222222',
-    thread_id: 'e2222222-2222-4222-8222-222222222222',
-    organization_id: DEFAULT_ORG_ID,
-    from_address: 'admin@jvecom.in',
-    from_name: 'Adhesh Krishna (JVECOM B2B)',
-    to_addresses: ['priya.verma@clovy.in'],
-    cc_addresses: [],
-    subject: 'Invoice INV-2026-001 — Payment Receipt & Delivery Dispatch',
-    body_html: '<p>Dear Priya,</p><p>Thank you for your payment of ₹1,50,000 for the VIP Mentorship and Fulfillment onboarding.</p><p>Your tracking link and portal credentials have been generated and activated.</p><p>Best regards,<br/>Adhesh Krishna<br/>JVECOM B2B Operations</p>',
-    body_text: 'Dear Priya,\n\nThank you for your payment of ₹1,50,000 for the VIP Mentorship and Fulfillment onboarding.\n\nYour tracking link and portal credentials have been generated and activated.\n\nBest regards,\nAdhesh Krishna\nJVECOM B2B Operations',
-    status: 'sent',
-    delivery_status: 'live_delivered',
-    is_read: true,
-    sent_at: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-  },
-  {
-    id: 'm3333333-3333-4333-8333-333333333333',
-    thread_id: 'e3333333-3333-4333-8333-333333333333',
-    organization_id: DEFAULT_ORG_ID,
-    from_address: 'procurement@kadalundiretail.in',
-    from_name: 'Kadalundi Procurement Team',
-    to_addresses: ['admin@jvecom.in'],
-    cc_addresses: [],
-    subject: 'Bulk Sourcing Request — 1,000 Shoe Dryers for Kerala Retail Stores',
-    body_html: '<p>Hello JVECOM Team,</p><p>We are interested in placing a wholesale order for 1,000 units of portable electric shoe dryers. Please share the MOQ tiers, lead time, and GST invoice terms.</p><p>Regards,<br/>Kadalundi Retail Sourcing</p>',
-    body_text: 'Hello JVECOM Team,\n\nWe are interested in placing a wholesale order for 1,000 units of portable electric shoe dryers. Please share the MOQ tiers, lead time, and GST invoice terms.\n\nRegards,\nKadalundi Retail Sourcing',
-    status: 'sent',
-    delivery_status: 'live_delivered',
-    is_read: false,
-    sent_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-  },
-  {
-    id: 'md111111-1111-4111-8111-111111111111',
-    thread_id: 'ed111111-1111-4111-8111-111111111111',
-    organization_id: DEFAULT_ORG_ID,
-    from_address: 'admin@jvecom.in',
-    from_name: 'Adhesh Krishna',
-    to_addresses: ['orders@sb-retail.in'],
-    cc_addresses: [],
-    subject: '[Draft] Quotation Proposal for Private Label Packaging 5,000 Units',
-    body_html: '<p>Dear Sulthan Bathery Store Management,</p><p>Enclosed is the private label packaging quotation for 5,000 customized gift boxes with matte finishing and UV spot embossing.</p>',
-    body_text: 'Dear Sulthan Bathery Store Management,\n\nEnclosed is the private label packaging quotation for 5,000 customized gift boxes with matte finishing and UV spot embossing.',
-    status: 'draft',
-    is_read: true,
-    sent_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-  },
-];
-
 // Initialize Realtime subscription once
 let realtimeChannel: any = null;
 function initRealtime() {
@@ -294,10 +181,6 @@ export const emailService = {
 
       if (threadsRes.data && threadsRes.data.length > 0) {
         saveLocalThreads(threadsRes.data as EmailThread[]);
-      } else if (!threadsRes.error && (!threadsRes.data || threadsRes.data.length === 0)) {
-        // If Supabase has zero threads, seed the database with initial conversations!
-        await this.seedSupabase(orgId);
-        return;
       }
 
       if (msgsRes.data && msgsRes.data.length > 0) {
@@ -319,47 +202,6 @@ export const emailService = {
     } catch (err) {
       console.warn('[emailService] Supabase sync fallback:', err);
     }
-  },
-
-  /**
-   * Seed initial data into Supabase if empty
-   */
-  async seedSupabase(orgId: string = DEFAULT_ORG_ID): Promise<void> {
-    try {
-      const threadsWithOrg = SEED_THREADS.map(t => ({ ...t, organization_id: orgId }));
-      const msgsWithOrg = SEED_MESSAGES.map(m => ({ ...m, organization_id: orgId }));
-
-      await supabase.from('email_threads').upsert(threadsWithOrg);
-      await supabase.from('email_messages').upsert(msgsWithOrg);
-
-      saveLocalThreads(threadsWithOrg);
-      saveLocalMessages(msgsWithOrg);
-      notifyListeners();
-    } catch (err) {
-      console.warn('[emailService] Seed notice:', err);
-      // Fallback to local
-      if (getLocalThreads().length === 0) {
-        saveLocalThreads(SEED_THREADS);
-        saveLocalMessages(SEED_MESSAGES);
-        notifyListeners();
-      }
-    }
-  },
-
-  /**
-   * Seed initial local emails (called on MailPage mount)
-   */
-  seedDemoEmails(userEmail: string, userName: string) {
-    if (getLocalThreads().length === 0) {
-      saveLocalThreads(SEED_THREADS);
-      saveLocalMessages(SEED_MESSAGES);
-    }
-    // Asynchronously sync from Supabase to ensure multi-user consistency
-    this.syncFromSupabase().catch(() => {});
-  },
-
-  seedInitialEmails(userEmail: string, userName: string) {
-    this.seedDemoEmails(userEmail, userName);
   },
 
   /**
@@ -871,11 +713,3 @@ export const emailService = {
     return true;
   },
 };
-
-export function seedDemoEmails(userEmail: string, userName: string) {
-  emailService.seedDemoEmails(userEmail, userName);
-}
-
-export function seedInitialEmails(userEmail: string, userName: string) {
-  emailService.seedInitialEmails(userEmail, userName);
-}
