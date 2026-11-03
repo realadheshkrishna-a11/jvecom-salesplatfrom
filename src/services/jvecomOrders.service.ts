@@ -418,10 +418,10 @@ class JVecomOrdersService {
   // Configuration Management
   // ---------------------------------------------------------------------------
   public getConfig(): JVecomApiConfig {
-    const envApiKey = (import.meta.env.VITE_JVECOM_API_KEY as string) || '';
+    const envApiKey = 'server-managed';
     const envGatewayUrl = (import.meta.env.VITE_JVECOM_API_URL as string) || PROXY_GATEWAY_URL;
 
-    const savedApiKey = localStorage.getItem(STORAGE_KEYS.API_KEY) || envApiKey;
+    const savedApiKey = envApiKey;
     let savedGateway = localStorage.getItem(STORAGE_KEYS.GATEWAY_URL) || envGatewayUrl;
 
     if (typeof window !== 'undefined' && (savedGateway === DIRECT_EDGE_GATEWAY_URL || savedGateway.includes('wokqhsfrncvswtnukdou.supabase.co'))) {
@@ -604,7 +604,6 @@ class JVecomOrdersService {
         const response = await fetch(testUrl.toString(), {
           method: 'GET',
           headers: {
-            Authorization: `Bearer ${apiKey}`,
             Accept: 'application/json',
           },
         });
@@ -686,20 +685,6 @@ class JVecomOrdersService {
     error?: string;
   }> {
     const config = this.getConfig();
-    const apiKey = config.apiKey.trim();
-
-    if (!apiKey) {
-      return {
-        orders: [],
-        total: 0,
-        page: params.page || 1,
-        limit: params.limit || 25,
-        fromLiveGateway: false,
-        rateLimit: this.getRateLimitState(),
-        error: 'API key is required. Go to Settings → JVecom B2B API to enter your secret key (jvec_live_...).',
-      };
-    }
-
     const url = this.buildUrl('/orders');
     if (params.limit) url.searchParams.set('limit', String(params.limit));
     if (params.page) url.searchParams.set('page', String(params.page));
@@ -713,7 +698,6 @@ class JVecomOrdersService {
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${apiKey}`,
         Accept: 'application/json',
       },
     });
@@ -768,14 +752,11 @@ class JVecomOrdersService {
   // ---------------------------------------------------------------------------
   public async getOrder(orderId: string): Promise<JVecomOrder | null> {
     const config = this.getConfig();
-    const apiKey = config.apiKey.trim();
-    if (!apiKey) throw new Error('API key is required to query live order details.');
 
     const url = this.buildUrl(`/orders/${encodeURIComponent(orderId)}`);
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${apiKey}`,
         Accept: 'application/json',
       },
     });
@@ -808,14 +789,11 @@ class JVecomOrdersService {
   // ---------------------------------------------------------------------------
   public async getOrderItems(orderId: string): Promise<JVecomOrderItem[]> {
     const config = this.getConfig();
-    const apiKey = config.apiKey.trim();
-    if (!apiKey) throw new Error('API key is required to query line items.');
 
     const url = this.buildUrl(`/orders/${encodeURIComponent(orderId)}/items`);
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${apiKey}`,
         Accept: 'application/json',
       },
     });
@@ -859,14 +837,11 @@ class JVecomOrdersService {
   // ---------------------------------------------------------------------------
   public async getOrderTracking(orderId: string): Promise<JVecomTrackingDetails | null> {
     const config = this.getConfig();
-    const apiKey = config.apiKey.trim();
-    if (!apiKey) throw new Error('API key is required to query real-time tracking.');
 
     const url = this.buildUrl(`/orders/${encodeURIComponent(orderId)}/tracking`);
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${apiKey}`,
         Accept: 'application/json',
       },
     });
@@ -912,10 +887,6 @@ class JVecomOrdersService {
     fromLiveGateway: boolean;
   }> {
     const config = this.getConfig();
-    const apiKey = config.apiKey.trim();
-    if (!apiKey) {
-      throw new Error('API key is required for real-time order sync. Please configure your key in Settings.');
-    }
 
     const lastSyncedAt = config.lastSyncedAt;
     const nowIso = new Date().toISOString();
@@ -929,7 +900,6 @@ class JVecomOrdersService {
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${apiKey}`,
         Accept: 'application/json',
       },
     });

@@ -24,7 +24,6 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/toast';
 import { formatCurrency } from '@/lib/utils';
-import { useNavigate } from 'react-router-dom';
 import {
   Truck,
   Package,
@@ -32,7 +31,6 @@ import {
   RotateCw,
   ExternalLink,
   Receipt,
-  Settings,
   ShieldCheck,
   Zap,
   Filter,
@@ -46,7 +44,6 @@ import {
   ChevronLeft,
   ChevronRight,
   TrendingUp,
-  Key,
 } from 'lucide-react';
 import { OrderDetailDialog } from './OrderDetailDialog';
 
@@ -55,7 +52,6 @@ export function B2BOrdersPage() {
   const orgId = organization?.id || '';
   const userId = profile?.id || '';
   const { success, error: toastError } = useToast();
-  const navigate = useNavigate();
 
   // State
   const [loading, setLoading] = useState(true);
@@ -121,7 +117,7 @@ export function B2BOrdersPage() {
 
   // Auto-sync polling if enabled in settings
   useEffect(() => {
-    if (!config.autoSync || !config.apiKey) return;
+    if (!config.autoSync) return;
     const intervalMinutes = Math.max(1, config.autoSyncIntervalMinutes || 10);
     const intervalId = setInterval(() => {
       jvecomOrdersService
@@ -137,16 +133,10 @@ export function B2BOrdersPage() {
     }, intervalMinutes * 60 * 1000);
 
     return () => clearInterval(intervalId);
-  }, [config.autoSync, config.apiKey, config.autoSyncIntervalMinutes, loadOrders]);
+  }, [config.autoSync, config.autoSyncIntervalMinutes, loadOrders]);
 
   // Handle manual incremental sync using GET /orders?updated_since=...
   const handleIncrementalSync = async () => {
-    if (!config.apiKey) {
-      toastError('API Key Required', 'Please configure your API key in Settings first.');
-      navigate('/settings');
-      return;
-    }
-
     try {
       setSyncing(true);
       const result = await jvecomOrdersService.syncOrdersIncrementally();
@@ -202,9 +192,8 @@ export function B2BOrdersPage() {
   };
 
   const copySampleCurl = () => {
-    const curlCmd = `curl -X GET "${config.gatewayUrl}/orders?limit=25" \\\n  -H "Authorization: Bearer ${
-      config.apiKey || '<YOUR_JVECOM_API_KEY>'
-    }" \\\n  -H "Accept: application/json"`;
+    const curlCmd = `curl -X GET "${config.gatewayUrl}/orders?limit=25" \
+  -H "Accept: application/json"`;
     navigator.clipboard.writeText(curlCmd);
     setCopiedCurl(true);
     setTimeout(() => setCopiedCurl(false), 2000);
@@ -224,13 +213,9 @@ export function B2BOrdersPage() {
               <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/30 text-[10px]">
                 ● Live Edge Gateway (Real-Time)
               </Badge>
-            ) : config.apiKey ? (
-              <Badge className="bg-blue-500/15 text-blue-500 border-blue-500/30 text-[10px]">
-                ● Live Gateway Ready
-              </Badge>
             ) : (
-              <Badge className="bg-amber-500/15 text-amber-500 border-amber-500/30 text-[10px]">
-                API Key Required
+              <Badge className="bg-blue-500/15 text-blue-500 border-blue-500/30 text-[10px]">
+                ● Server Gateway
               </Badge>
             )}
             {rateLimit && (
@@ -252,15 +237,6 @@ export function B2BOrdersPage() {
             className="text-xs gap-1.5 h-8"
           >
             <FileCode className="h-3.5 w-3.5 text-primary" /> API Specification
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/settings')}
-            className="text-xs gap-1.5 h-8"
-          >
-            <Settings className="h-3.5 w-3.5" /> API Settings
           </Button>
 
           <Button
@@ -289,32 +265,7 @@ export function B2BOrdersPage() {
             <Button size="sm" variant="outline" onClick={loadOrders} className="h-7 text-xs gap-1">
               <RotateCw className="h-3 w-3" /> Retry GET
             </Button>
-            <Button size="sm" onClick={() => navigate('/settings')} className="h-7 text-xs">
-              Open Settings
-            </Button>
           </div>
-        </div>
-      )}
-
-      {/* API Key Missing Notice */}
-      {!config.apiKey && !fetchError && (
-        <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2.5 text-amber-600 dark:text-amber-400">
-            <Key className="h-4 w-4 shrink-0" />
-            <div>
-              <span className="font-semibold block">API Key Not Configured</span>
-              <span className="text-muted-foreground">
-                To retrieve real-time B2B orders, configure your secret API key (starts with <code className="font-mono text-foreground font-semibold">jvec_live_...</code>) in Settings.
-              </span>
-            </div>
-          </div>
-          <Button
-            size="sm"
-            onClick={() => navigate('/settings')}
-            className="h-7 text-xs bg-amber-600 hover:bg-amber-700 text-white shrink-0"
-          >
-            Configure API Key
-          </Button>
         </div>
       )}
 
@@ -467,23 +418,17 @@ export function B2BOrdersPage() {
                 icon={<Package className="h-10 w-10 text-muted-foreground" />}
                 title="No Real-Time Orders Found"
                 description={
-                  !config.apiKey
-                    ? 'Enter your JVecom B2B API Key in Settings to query real-time orders.'
-                    : search || statusFilter !== 'all'
+                  search || statusFilter !== 'all'
                     ? 'No orders matched your active search and filter criteria. Try resetting filters.'
                     : 'No orders returned from the live gateway yet. Click Sync Orders to poll real-time orders using GET.'
                 }
                 actionLabel={
-                  !config.apiKey
-                    ? 'Go to Settings'
-                    : search || statusFilter !== 'all'
+                  search || statusFilter !== 'all'
                     ? 'Clear Filters'
                     : 'Sync Orders Now'
                 }
                 onAction={
-                  !config.apiKey
-                    ? () => navigate('/settings')
-                    : search || statusFilter !== 'all'
+                  search || statusFilter !== 'all'
                     ? () => {
                         setSearch('');
                         setStatusFilter('all');
@@ -708,9 +653,7 @@ export function B2BOrdersPage() {
                   <code className="bg-muted px-1 rounded text-foreground font-mono">jvec_live_...</code> from JVecom B2B Admin under Developer API.
                 </li>
                 <li>
-                  <strong className="text-foreground">Authenticate:</strong> Include header{' '}
-                  <code className="bg-muted px-1 rounded text-foreground font-mono">Authorization: Bearer jvec_live_...</code> on every request.
-                </li>
+                  <strong className="text-foreground">Authenticate:</strong> The server-side Supabase function adds the configured secret.</li>
                 <li>
                   <strong className="text-foreground">Incremental Polling:</strong> Pass{' '}
                   <code className="bg-muted px-1 rounded text-foreground font-mono">?updated_since=...</code> to fetch only newly modified orders.
@@ -773,22 +716,8 @@ export function B2BOrdersPage() {
               </div>
               <pre className="bg-muted p-2.5 rounded-lg text-[11px] font-mono overflow-x-auto text-foreground">
 {`curl -X GET "${config.gatewayUrl}/orders?limit=25" \\
-  -H "Authorization: Bearer ${config.apiKey || '<YOUR_JVECOM_API_KEY>'}" \\
   -H "Accept: application/json"`}
               </pre>
-            </div>
-
-            <div className="pt-2 border-t border-border flex justify-end">
-              <Button
-                size="sm"
-                onClick={() => {
-                  setApiDocModalOpen(false);
-                  navigate('/settings');
-                }}
-                className="text-xs gap-1.5"
-              >
-                <Settings className="h-3.5 w-3.5" /> Configure API in Settings
-              </Button>
             </div>
           </div>
         </DialogContent>
