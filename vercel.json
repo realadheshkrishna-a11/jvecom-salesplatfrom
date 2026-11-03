@@ -6,7 +6,7 @@
     },
     {
       "source": "/api/jvecom/:path*",
-      "destination": "https://wokqhsfrncvswtnukdou.supabase.co/functions/v1/orders-api/v1/:path*"
+      "destination": "https://qkwxsiezhyarpcfnbjja.supabase.co/functions/v1/orders-api/v1/:path*"
     },
     {
       "source": "/(.*)",

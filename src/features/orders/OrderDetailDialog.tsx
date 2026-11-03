@@ -42,6 +42,7 @@ interface OrderDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onImportSuccess?: () => void;
+  onOrderUpdated?: (order: JVecomOrder) => void;
 }
 
 export function OrderDetailDialog({
@@ -49,6 +50,7 @@ export function OrderDetailDialog({
   open,
   onOpenChange,
   onImportSuccess,
+  onOrderUpdated,
 }: OrderDetailDialogProps) {
   const { organization, profile } = useAuth();
   const { success, error: toastError } = useToast();
@@ -72,27 +74,43 @@ export function OrderDetailDialog({
         jvecomOrdersService.getOrderItems(orderKey),
       ]);
 
+      let loadedItems: JVecomOrderItem[] = [];
+      let updatedOrder: JVecomOrder | null = null;
+
       if (orderRes.status === 'fulfilled' && orderRes.value) {
+        updatedOrder = orderRes.value;
         setLiveOrder(orderRes.value);
+        if (orderRes.value.items && orderRes.value.items.length > 0) {
+          loadedItems = orderRes.value.items;
+          setLiveItems(orderRes.value.items);
+        }
       }
       if (trackingRes.status === 'fulfilled' && trackingRes.value) {
         setLiveTracking(trackingRes.value);
       }
       if (itemsRes.status === 'fulfilled' && itemsRes.value && itemsRes.value.length > 0) {
+        loadedItems = itemsRes.value;
         setLiveItems(itemsRes.value);
+      }
+
+      if (updatedOrder && onOrderUpdated) {
+        if (loadedItems.length > 0) {
+          updatedOrder = { ...updatedOrder, items: loadedItems };
+        }
+        onOrderUpdated(updatedOrder);
       }
     } catch (e) {
       console.warn('Real-time order query note:', e);
     } finally {
       setRefreshingLive(false);
     }
-  }, [rawOrder]);
+  }, [rawOrder, onOrderUpdated]);
 
   useEffect(() => {
     if (open && rawOrder) {
       setLiveOrder(null);
       setLiveTracking(rawOrder.tracking || null);
-      setLiveItems(rawOrder.items || []);
+      setLiveItems(rawOrder.items && rawOrder.items.length > 0 ? rawOrder.items : []);
       fetchRealtimeDetails();
     }
   }, [open, rawOrder?.id, fetchRealtimeDetails]);
@@ -102,7 +120,9 @@ export function OrderDetailDialog({
   if (!order) return null;
 
   const currentTracking = liveTracking || order.tracking;
-  const currentItems = liveItems.length > 0 ? liveItems : order.items || [];
+  const currentItems = liveItems.length > 0
+    ? liveItems
+    : (order.items && order.items.length > 0 ? order.items : (rawOrder?.items || []));
 
   const copyToClipboard = (text: string, type: 'awb' | 'json') => {
     navigator.clipboard.writeText(text);
@@ -396,6 +416,94 @@ export function OrderDetailDialog({
               </Card>
             </div>
 
+            {/* ORDERED PRODUCTS CARD - DISPLAYED DIRECTLY ON VIEW */}
+            <Card className="border-border shadow-sm">
+              <CardContent className="pt-4 space-y-3 text-xs">
+                <div className="flex items-center justify-between border-b border-border pb-2.5">
+                  <div className="flex items-center gap-2 font-semibold text-foreground text-sm">
+                    <Package className="h-4 w-4 text-primary" /> Ordered Products
+                    {currentItems.length > 0 && (
+                      <Badge variant="secondary" className="text-[11px] font-normal">
+                        {currentItems.reduce((acc, i) => acc + (i.quantity || 1), 0)}{' '}
+                        {currentItems.reduce((acc, i) => acc + (i.quantity || 1), 0) === 1 ? 'unit' : 'units'} (
+                        {currentItems.length} {currentItems.length === 1 ? 'product' : 'products'})
+                      </Badge>
+                    )}
+                  </div>
+                  {refreshingLive && (
+                    <span className="text-[10px] text-primary flex items-center gap-1 font-mono">
+                      <RotateCw className="h-3 w-3 animate-spin" /> Fetching live product data...
+                    </span>
+                  )}
+                </div>
+
+                {refreshingLive && currentItems.length === 0 ? (
+                  <div className="py-6 text-center text-muted-foreground flex flex-col items-center justify-center gap-2">
+                    <RotateCw className="h-5 w-5 animate-spin text-primary" />
+                    <span>Loading ordered products...</span>
+                  </div>
+                ) : currentItems.length === 0 ? (
+                  <div className="py-6 text-center text-muted-foreground flex flex-col items-center justify-center gap-1">
+                    <Package className="h-6 w-6 text-muted-foreground/40" />
+                    <span>No specific product items returned in order payload</span>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {currentItems.map((item, idx) => (
+                      <div
+                        key={item.id || idx}
+                        className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-muted/10 px-1 rounded-md transition-colors"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+                            <Package className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <span className="font-semibold text-foreground text-sm block leading-snug">
+                              {item.product_name || item.name || 'Product Item'}
+                            </span>
+                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                              {item.sku && (
+                                <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0 bg-muted/50">
+                                  SKU: {item.sku}
+                                </Badge>
+                              )}
+                              {item.product_id && (
+                                <span className="font-mono text-[10px] text-muted-foreground">
+                                  ID: {item.product_id}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between sm:justify-end gap-4 text-right pl-13 sm:pl-0">
+                          <div>
+                            <span className="text-muted-foreground text-[10px] block">Unit Price</span>
+                            <span className="font-medium text-foreground text-xs">
+                              {formatCurrency(item.unit_price || 0)}
+                            </span>
+                          </div>
+                          <div className="bg-muted px-2.5 py-1 rounded text-center min-w-[50px]">
+                            <span className="text-muted-foreground text-[10px] block">Qty</span>
+                            <span className="font-bold text-foreground text-xs">
+                              × {item.quantity || 1}
+                            </span>
+                          </div>
+                          <div className="min-w-[80px]">
+                            <span className="text-muted-foreground text-[10px] block">Line Total</span>
+                            <span className="font-bold text-sm text-primary">
+                              {formatCurrency(item.line_total || ((item.quantity || 1) * (item.unit_price || 0)))}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Financial Totals & Payment */}
             <Card className="border-border">
               <CardContent className="pt-4 text-xs">
@@ -577,26 +685,41 @@ export function OrderDetailDialog({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {currentItems.map((item, idx) => (
-                        <tr key={item.id || idx} className="hover:bg-muted/20">
-                          <td className="py-3">
-                            <span className="font-semibold text-foreground text-xs block">
-                              {item.product_name || item.name || 'Product'}
-                            </span>
-                            <span className="font-mono text-[11px] text-muted-foreground">{item.sku || 'N/A'}</span>
-                          </td>
-                          <td className="py-3 font-mono text-[11px] text-muted-foreground">
-                            {item.product_id || 'N/A'}
-                          </td>
-                          <td className="py-3 text-right font-medium text-foreground">{item.quantity || 1}</td>
-                          <td className="py-3 text-right font-medium text-foreground">
-                            {formatCurrency(item.unit_price || 0)}
-                          </td>
-                          <td className="py-3 text-right font-bold text-foreground">
-                            {formatCurrency(item.line_total || 0)}
+                      {currentItems.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="py-8 text-center text-muted-foreground">
+                            {refreshingLive ? (
+                              <div className="flex items-center justify-center gap-2">
+                                <RotateCw className="h-4 w-4 animate-spin text-primary" />
+                                <span>Loading line items from API...</span>
+                              </div>
+                            ) : (
+                              <span>No line items found for this order.</span>
+                            )}
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        currentItems.map((item, idx) => (
+                          <tr key={item.id || idx} className="hover:bg-muted/20">
+                            <td className="py-3">
+                              <span className="font-semibold text-foreground text-xs block">
+                                {item.product_name || item.name || 'Product'}
+                              </span>
+                              <span className="font-mono text-[11px] text-muted-foreground">{item.sku || 'N/A'}</span>
+                            </td>
+                            <td className="py-3 font-mono text-[11px] text-muted-foreground">
+                              {item.product_id || 'N/A'}
+                            </td>
+                            <td className="py-3 text-right font-medium text-foreground">{item.quantity || 1}</td>
+                            <td className="py-3 text-right font-medium text-foreground">
+                              {formatCurrency(item.unit_price || 0)}
+                            </td>
+                            <td className="py-3 text-right font-bold text-foreground">
+                              {formatCurrency(item.line_total || 0)}
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>

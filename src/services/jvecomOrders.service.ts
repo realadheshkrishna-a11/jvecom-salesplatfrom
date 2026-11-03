@@ -19,7 +19,7 @@ import { supabase } from '@/lib/supabase';
 import type { Sale, Customer, SaleItem } from '@/types';
 import { PaymentStatus, PaymentMethod, CustomerStatus } from '@/types';
 
-export const DIRECT_EDGE_GATEWAY_URL = 'https://wokqhsfrncvswtnukdou.supabase.co/functions/v1/orders-api/v1';
+export const DIRECT_EDGE_GATEWAY_URL = 'https://qkwxsiezhyarpcfnbjja.supabase.co/functions/v1/orders-api/v1';
 export const PRODUCTION_PUBLIC_GATEWAY_URL = 'https://www.jvecomb2b.com/api/v1';
 export const PROXY_GATEWAY_URL = '/api/jvecom';
 
@@ -424,7 +424,7 @@ class JVecomOrdersService {
     const savedApiKey = envApiKey;
     let savedGateway = localStorage.getItem(STORAGE_KEYS.GATEWAY_URL) || envGatewayUrl;
 
-    if (typeof window !== 'undefined' && (savedGateway === DIRECT_EDGE_GATEWAY_URL || savedGateway.includes('wokqhsfrncvswtnukdou.supabase.co'))) {
+    if (typeof window !== 'undefined' && (savedGateway === DIRECT_EDGE_GATEWAY_URL || savedGateway.includes('qkwxsiezhyarpcfnbjja.supabase.co') || savedGateway.includes('wokqhsfrncvswtnukdou.supabase.co'))) {
       savedGateway = PROXY_GATEWAY_URL;
     }
 
@@ -510,7 +510,7 @@ class JVecomOrdersService {
   public resolveGatewayUrl(url?: string): string {
     const raw = (url || this.getConfig().gatewayUrl || PROXY_GATEWAY_URL).trim().replace(/\/+$/, '');
     if (typeof window !== 'undefined') {
-      if (raw === DIRECT_EDGE_GATEWAY_URL || raw.includes('wokqhsfrncvswtnukdou.supabase.co')) {
+      if (raw === DIRECT_EDGE_GATEWAY_URL || raw.includes('qkwxsiezhyarpcfnbjja.supabase.co') || raw.includes('wokqhsfrncvswtnukdou.supabase.co')) {
         return PROXY_GATEWAY_URL;
       }
     }

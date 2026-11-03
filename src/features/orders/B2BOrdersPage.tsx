@@ -520,11 +520,14 @@ export function B2BOrdersPage() {
                       {/* Line Items */}
                       <td className="py-3.5 px-4">
                         <span className="font-medium text-foreground block text-xs truncate max-w-[200px]">
-                          {order.items?.[0]?.product_name || order.items?.[0]?.name || 'Products'}
+                          {order.items?.[0]?.product_name || order.items?.[0]?.name || 'View product'}
                         </span>
                         <span className="text-[11px] text-muted-foreground block">
-                          {order.items?.length || 0} {(order.items?.length || 0) === 1 ? 'item' : 'items'}
-                          {order.items?.[0]?.sku ? ` • SKU: ${order.items[0].sku}` : ''}
+                          {(order.items?.length || 0) > 0 ? (
+                            `${order.items!.length} ${order.items!.length === 1 ? 'item' : 'items'}${order.items![0]?.sku ? ` • SKU: ${order.items[0].sku}` : ''}`
+                          ) : (
+                            <span className="text-primary hover:underline">Click View to see items</span>
+                          )}
                         </span>
                       </td>
 
@@ -629,6 +632,12 @@ export function B2BOrdersPage() {
         open={detailModalOpen}
         onOpenChange={setDetailModalOpen}
         onImportSuccess={loadOrders}
+        onOrderUpdated={(updated) => {
+          setSelectedOrder(updated);
+          setOrders((prev) =>
+            prev.map((o) => (o.id === updated.id || o.order_number === updated.order_number ? updated : o))
+          );
+        }}
       />
 
       {/* API Specification & Integration Quick Reference Dialog */}
