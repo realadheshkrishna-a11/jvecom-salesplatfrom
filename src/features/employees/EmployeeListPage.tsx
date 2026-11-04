@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { employeesService } from '@/services/employees.service';
+import { emailService } from '@/services/email.service';
 import { teamsService } from '@/services/teams.service';
 import type { Profile, Team } from '@/types';
 import { UserRole, EmployeeStatus } from '@/types';
@@ -11,18 +12,192 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
+import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Mail, UserPlus, Filter, MoreHorizontal, ShieldCheck } from 'lucide-react';
+import { Search, Mail, UserPlus, RefreshCw, Copy, Eye, EyeOff, Check, Trash2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { employeeSchema, type EmployeeInput } from '@/schemas';
 
+export const SIDE_PANEL_FUNCTIONS = [
+  { id: 'dashboard', label: 'Dashboard' },
+  { id: 'crm', label: 'CRM' },
+  { id: 'sales', label: 'Sales' },
+  { id: 'b2b-orders', label: 'B2B Orders' },
+  { id: 'products', label: 'Products' },
+  { id: 'customers', label: 'Customers' },
+  { id: 'mail', label: 'Mail' },
+  { id: 'targets', label: 'Targets' },
+  { id: 'leaderboard', label: 'Leaderboard' },
+  { id: 'gamification', label: 'XP & Achievements' },
+  { id: 'commissions', label: 'Commissions' },
+  { id: 'bonuses', label: 'Bonuses' },
+  { id: 'analytics', label: 'Analytics' },
+  { id: 'employees', label: 'Employees' },
+  { id: 'teams', label: 'Teams' },
+  { id: 'reports', label: 'Reports' },
+  { id: 'notifications', label: 'Notifications' },
+  { id: 'audit-logs', label: 'Audit Logs' },
+  { id: 'settings', label: 'Settings' },
+];
+
+function buildInvitationEmail({
+  firstName,
+  lastName,
+  email,
+  username,
+  employeeId,
+  password,
+  role,
+  accessOnly,
+  orgName,
+}: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  username: string;
+  employeeId: string;
+  password: string;
+  role: string;
+  accessOnly?: string;
+  orgName: string;
+}) {
+  const roleName = String(role).replace(/_/g, ' ');
+  const loginUrl = `${window.location.origin}/login`;
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to ${orgName}</title>
+</head>
+<body style="margin:0;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background-color:#f1f5f9;color:#1e293b;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:580px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 4px 6px -1px rgba(0,0,0,0.06);">
+    <!-- Header -->
+    <tr>
+      <td style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);padding:32px 28px;text-align:center;color:#ffffff;">
+        <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-0.02em;color:#ffffff;">Welcome to ${orgName}</h1>
+        <p style="margin:8px 0 0 0;font-size:14px;color:#dbeafe;">Your employee account has been created</p>
+      </td>
+    </tr>
+    <!-- Content -->
+    <tr>
+      <td style="padding:32px 28px;">
+        <div style="font-size:16px;font-weight:600;color:#0f172a;margin-bottom:12px;">Hello ${firstName} ${lastName},</div>
+        <p style="font-size:14px;line-height:1.6;color:#475569;margin-bottom:24px;">
+          You have been invited to join <strong>${orgName}</strong> on the SalesOS platform. Your employee account is active and ready. Below are your login credentials:
+        </p>
+
+        <!-- Credentials Card -->
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:16px;margin:20px 0;">
+          <tr>
+            <td colspan="2" style="padding-bottom:12px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;border-bottom:1px solid #e2e8f0;">
+              Account Login Details
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0;font-size:13px;font-weight:600;color:#334155;border-bottom:1px solid #e2e8f0;">Username</td>
+            <td style="padding:10px 0;font-size:14px;font-family:monospace;font-weight:700;color:#0f172a;text-align:right;border-bottom:1px solid #e2e8f0;">${username}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0;font-size:13px;font-weight:600;color:#334155;border-bottom:1px solid #e2e8f0;">User ID</td>
+            <td style="padding:10px 0;font-size:14px;font-family:monospace;font-weight:700;color:#0f172a;text-align:right;border-bottom:1px solid #e2e8f0;">${employeeId}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0;font-size:13px;font-weight:600;color:#334155;border-bottom:1px solid #e2e8f0;">Work Email</td>
+            <td style="padding:10px 0;font-size:14px;font-family:monospace;font-weight:700;color:#0f172a;text-align:right;border-bottom:1px solid #e2e8f0;">${email}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0;font-size:13px;font-weight:600;color:#334155;border-bottom:1px solid #e2e8f0;">Temporary Password</td>
+            <td style="padding:10px 0;font-size:14px;font-family:monospace;font-weight:700;color:#2563eb;text-align:right;border-bottom:1px solid #e2e8f0;">${password}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0;font-size:13px;font-weight:600;color:#334155;border-bottom:1px solid #e2e8f0;">Assigned Role</td>
+            <td style="padding:10px 0;font-size:13px;font-weight:700;color:#1e40af;text-align:right;border-bottom:1px solid #e2e8f0;">${roleName}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0;font-size:13px;font-weight:600;color:#334155;">Access Only</td>
+            <td style="padding:10px 0;font-size:13px;font-weight:700;color:#0f172a;text-align:right;">${accessOnly || 'All Functions (Full Access)'}</td>
+          </tr>
+        </table>
+
+        <p style="font-size:13px;line-height:1.5;color:#64748b;margin:20px 0 28px;">
+          <strong>Security Notice:</strong> Please keep these credentials confidential. You can update your password upon signing in.
+        </p>
+
+        <!-- CTA Button -->
+        <div style="text-align:center;margin:32px 0 16px;">
+          <a href="${loginUrl}" style="background-color:#2563eb;color:#ffffff;display:inline-block;padding:12px 32px;font-size:14px;font-weight:600;border-radius:8px;text-decoration:none;box-shadow:0 2px 4px rgba(37,99,235,0.25);">
+            Access Your Account
+          </a>
+        </div>
+      </td>
+    </tr>
+    <!-- Footer -->
+    <tr>
+      <td style="padding:20px 28px;background:#f8fafc;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8;text-align:center;line-height:1.5;">
+        This automated invitation was sent by ${orgName} via SalesOS.<br />
+        If you have any questions, reach out to your team administrator.
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  const text = `Welcome to ${orgName}!
+
+Hello ${firstName} ${lastName},
+
+You have been invited to join ${orgName} on the SalesOS platform. Your employee account is active and ready.
+
+Your login credentials:
+- Username: ${username}
+- User ID: ${employeeId}
+- Work Email: ${email}
+- Temporary Password: ${password}
+- Assigned Role: ${roleName}
+- Access Only: ${accessOnly || 'All Functions (Full Access)'}
+
+Log in to your account at: ${loginUrl}
+
+Security Notice: Please keep these credentials confidential and update your password after your initial sign-in.
+
+---
+This automated invitation was sent by ${orgName} via SalesOS.`;
+
+  return { html, text };
+}
+
+function generateEmployeeId(): string {
+  const prefix = 'EMP';
+  const num = Math.floor(100000 + Math.random() * 900000);
+  return `${prefix}-${num}`;
+}
+
+function generatePassword(): string {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghjkmnpqrstuvwxyz';
+  const digits = '23456789';
+  const special = '!@#$%&*';
+  const all = upper + lower + digits + special;
+  let pwd = '';
+  pwd += upper[Math.floor(Math.random() * upper.length)];
+  pwd += lower[Math.floor(Math.random() * lower.length)];
+  pwd += digits[Math.floor(Math.random() * digits.length)];
+  pwd += special[Math.floor(Math.random() * special.length)];
+  for (let i = 4; i < 12; i++) {
+    pwd += all[Math.floor(Math.random() * all.length)];
+  }
+  return pwd.split('').sort(() => Math.random() - 0.5).join('');
+}
+
 export function EmployeeListPage() {
-  const { organization, isAdmin } = useAuth();
+  const { organization } = useAuth();
   const orgId = organization?.id || '11111111-1111-1111-1111-111111111111';
   const { success, error: toastError } = useToast();
 
@@ -32,6 +207,36 @@ export function EmployeeListPage() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [selectedAccess, setSelectedAccess] = useState<string[]>(
+    SIDE_PANEL_FUNCTIONS.map((f) => f.id)
+  );
+
+  const toggleAccess = (id: string) => {
+    const next = selectedAccess.includes(id)
+      ? selectedAccess.filter((m) => m !== id)
+      : [...selectedAccess, id];
+    setSelectedAccess(next);
+    if (next.length === SIDE_PANEL_FUNCTIONS.length) {
+      form.setValue('access_only', 'ALL');
+    } else if (next.length === 0) {
+      form.setValue('access_only', '');
+    } else {
+      form.setValue('access_only', next.join(','));
+    }
+  };
+
+  const handleSelectAllAccess = () => {
+    if (selectedAccess.length === SIDE_PANEL_FUNCTIONS.length) {
+      setSelectedAccess([]);
+      form.setValue('access_only', '');
+    } else {
+      const allIds = SIDE_PANEL_FUNCTIONS.map((f) => f.id);
+      setSelectedAccess(allIds);
+      form.setValue('access_only', 'ALL');
+    }
+  };
 
   const form = useForm<EmployeeInput>({
     resolver: zodResolver(employeeSchema),
@@ -39,9 +244,18 @@ export function EmployeeListPage() {
       first_name: '',
       last_name: '',
       email: '',
+      username: '',
+      employee_id: generateEmployeeId(),
+      password: generatePassword(),
       role: UserRole.SALES_REP,
+      team_id: '',
+      access_only: 'ALL',
     },
   });
+
+  const watchedEmployeeId = form.watch('employee_id');
+  const watchedPassword = form.watch('password');
+  const watchedAccessOnly = form.watch('access_only') || 'ALL';
 
   const loadData = async () => {
     try {
@@ -58,7 +272,7 @@ export function EmployeeListPage() {
       }
 
       if (teamRes.status === 'fulfilled') {
-        setTeams(teamRes.value);
+        setTeams(teamRes.value || []);
       }
     } catch (err) {
       console.error('Error fetching employees:', err);
@@ -72,20 +286,135 @@ export function EmployeeListPage() {
   }, [orgId]);
 
   const onInviteSubmit = async (values: EmployeeInput) => {
+    if (selectedAccess.length === 0) {
+      toastError('Access Required', 'Please tick at least one side panel function to grant access.');
+      return;
+    }
+
     try {
+      // 1. Create the employee profile record
       await employeesService.create(orgId, values);
-      success('Invitation Sent', `Invitation email dispatched to ${values.email}`);
+
+      // 2. Prepare the invitation email containing username, userid and password
+      const orgName = organization?.name || 'SalesOS';
+      const accessLabel = !values.access_only || values.access_only === 'ALL'
+        ? 'All Functions (Full Access)'
+        : values.access_only.split(',').map(m => {
+            const found = SIDE_PANEL_FUNCTIONS.find(f => f.id === m);
+            return found ? found.label : m;
+          }).join(', ');
+
+      const { html, text } = buildInvitationEmail({
+        firstName: values.first_name,
+        lastName: values.last_name,
+        email: values.email,
+        username: values.username || values.email.split('@')[0],
+        employeeId: values.employee_id || '',
+        password: values.password || '',
+        role: values.role,
+        accessOnly: accessLabel,
+        orgName,
+      });
+
+      const emailSubject = `Welcome to ${orgName} — Your Account Credentials`;
+
+      // 3. Send email to the employee (dispatches via Live Gateway / Resend & records in Sent folder)
+      try {
+        await emailService.send({
+          to: [values.email],
+          subject: emailSubject,
+          body_html: html,
+          body_text: text,
+          from_name: `${orgName} Team`,
+          from_address: 'noreply@crm.jvecomb2b.com',
+        }, orgId);
+      } catch (mailErr) {
+        console.warn('[EmployeeListPage] Live email dispatch notice:', mailErr);
+      }
+
+      // 4. Also deliver a copy to the in-app Mail Inbox for this user
+      try {
+        emailService.deliverToInbox({
+          to: values.email,
+          fromName: `${orgName} Team`,
+          fromAddress: 'noreply@crm.jvecomb2b.com',
+          subject: emailSubject,
+          html,
+          text,
+          orgId,
+        });
+      } catch (inboxErr) {
+        console.warn('[EmployeeListPage] In-app inbox delivery notice:', inboxErr);
+      }
+
+      success(
+        'Invitation & Credentials Sent',
+        `Account created and email with credentials dispatched to ${values.email}`
+      );
       setIsDialogOpen(false);
-      form.reset();
+      form.reset({
+        first_name: '',
+        last_name: '',
+        email: '',
+        username: '',
+        employee_id: generateEmployeeId(),
+        password: generatePassword(),
+        role: UserRole.SALES_REP,
+        team_id: '',
+      });
+      setShowPassword(false);
       loadData();
     } catch (err: unknown) {
       toastError('Failed to invite employee', err instanceof Error ? err.message : 'Please check details');
     }
   };
 
+  const handleDeleteEmployee = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to delete ${name}? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      await employeesService.delete(id);
+      success('Employee Deleted', `${name} has been removed from the directory.`);
+      loadData();
+    } catch (err: unknown) {
+      toastError('Failed to delete employee', err instanceof Error ? err.message : 'Please try again');
+    }
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopied(label);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const handleDialogOpen = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (open) {
+      const newEmpId = generateEmployeeId();
+      const newPassword = generatePassword();
+      const allIds = SIDE_PANEL_FUNCTIONS.map((f) => f.id);
+      setSelectedAccess(allIds);
+      form.reset({
+        first_name: '',
+        last_name: '',
+        email: '',
+        username: '',
+        employee_id: newEmpId,
+        password: newPassword,
+        role: UserRole.SALES_REP,
+        team_id: '',
+        access_only: 'ALL',
+      });
+      setShowPassword(false);
+      setCopied(null);
+    }
+  };
+
   const filteredEmployees = employees.filter((emp) => {
     const matchesSearch =
-      `${emp.first_name} ${emp.last_name} ${emp.email}`
+      `${emp.first_name || ''} ${emp.last_name || ''} ${emp.email || ''} ${emp.username || ''} ${emp.employee_id || ''}`
         .toLowerCase()
         .includes(search.toLowerCase());
     const matchesRole = roleFilter === 'ALL' || emp.role === roleFilter;
@@ -98,85 +427,10 @@ export function EmployeeListPage() {
         title="Employee Directory"
         subtitle="Manage sales representatives, team leads, access roles, and onboarding invitations."
       >
-        {isAdmin && (
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="gap-2">
-                <UserPlus className="w-4 h-4" />
-                Invite Employee
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Invite New Team Member</DialogTitle>
-                <DialogDescription>
-                  Send an activation link with role and team assignments
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={form.handleSubmit(onInviteSubmit)} className="space-y-4 py-2">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="first_name">First Name</Label>
-                    <Input id="first_name" placeholder="John" {...form.register('first_name')} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="last_name">Last Name</Label>
-                    <Input id="last_name" placeholder="Doe" {...form.register('last_name')} />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="email">Work Email</Label>
-                  <Input id="email" type="email" placeholder="john.doe@company.com" {...form.register('email')} />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label>Role</Label>
-                    <Select
-                      defaultValue={UserRole.SALES_REP}
-                      onValueChange={(val) => form.setValue('role', val as any)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={UserRole.SALES_REP}>Sales Representative</SelectItem>
-                        <SelectItem value={UserRole.MANAGER}>Sales Manager</SelectItem>
-                        <SelectItem value={UserRole.ORG_ADMIN}>Organization Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label>Assign Team</Label>
-                    <Select
-                      onValueChange={(val) => form.setValue('team_id', val)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select team" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {teams.map((t) => (
-                          <SelectItem key={t.id} value={t.id}>
-                            {t.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <DialogFooter className="pt-4">
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit">Send Invite</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
+        <Button size="sm" className="gap-2 shadow-sm" onClick={() => handleDialogOpen(true)}>
+          <UserPlus className="w-4 h-4" />
+          Invite Employee
+        </Button>
       </PageHeader>
 
       {/* Filter and Search Bar */}
@@ -184,7 +438,7 @@ export function EmployeeListPage() {
         <div className="relative flex-1 w-full">
           <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-3" />
           <Input
-            placeholder="Search by name, email or employee ID..."
+            placeholder="Search by name, email, username or employee ID..."
             className="pl-9 bg-card"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -213,7 +467,7 @@ export function EmployeeListPage() {
           title="No employees found"
           description="Try adjusting your search criteria or invite your first sales representative."
           actionLabel="Invite Employee"
-          onAction={() => setIsDialogOpen(true)}
+          onAction={() => handleDialogOpen(true)}
         />
       ) : (
         <Card className="border-border/60">
@@ -222,6 +476,7 @@ export function EmployeeListPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Employee</TableHead>
+                  <TableHead>User ID / Username</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Team</TableHead>
                   <TableHead>Status</TableHead>
@@ -242,6 +497,16 @@ export function EmployeeListPage() {
                           {emp.email}
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-xs font-mono text-foreground font-medium">
+                        {emp.employee_id || '—'}
+                      </div>
+                      {emp.username && (
+                        <div className="text-[11px] text-muted-foreground">
+                          @{emp.username}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -269,11 +534,22 @@ export function EmployeeListPage() {
                       {emp.created_at ? new Date(emp.created_at).toLocaleDateString() : 'N/A'}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link to={`/employees/${emp.id}`} className="text-xs text-primary">
-                          Profile
-                        </Link>
-                      </Button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link to={`/employees/${emp.id}`} className="text-xs text-primary font-medium">
+                            Profile
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          title="Delete Employee"
+                          onClick={() => handleDeleteEmployee(emp.id, `${emp.first_name} ${emp.last_name}`)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -282,6 +558,270 @@ export function EmployeeListPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Invite Employee Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={handleDialogOpen}>
+        <DialogContent className="sm:max-w-xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Invite New Team Member</DialogTitle>
+            <DialogDescription>
+              Create credentials and assign roles for the new employee.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={form.handleSubmit(onInviteSubmit)} className="space-y-4 py-2 overflow-y-auto pr-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="first_name">First Name *</Label>
+                <Input id="first_name" placeholder="John" {...form.register('first_name')} />
+                {form.formState.errors.first_name && (
+                  <p className="text-xs text-destructive">{form.formState.errors.first_name.message}</p>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="last_name">Last Name *</Label>
+                <Input id="last_name" placeholder="Doe" {...form.register('last_name')} />
+                {form.formState.errors.last_name && (
+                  <p className="text-xs text-destructive">{form.formState.errors.last_name.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Work Email *</Label>
+              <Input id="email" type="email" placeholder="john.doe@company.com" {...form.register('email')} />
+              {form.formState.errors.email && (
+                <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="username">Username *</Label>
+              <Input id="username" placeholder="john.doe" {...form.register('username')} />
+              {form.formState.errors.username && (
+                <p className="text-xs text-destructive">{form.formState.errors.username.message}</p>
+              )}
+            </div>
+
+            {/* Auto-generated User ID */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="employee_id">User ID <span className="text-xs text-muted-foreground font-normal">(Auto-generated)</span></Label>
+                {copied === 'userId' && (
+                  <span className="text-xs text-green-600 flex items-center gap-1 font-medium">
+                    <Check className="w-3 h-3" /> Copied!
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  id="employee_id"
+                  readOnly
+                  value={watchedEmployeeId || ''}
+                  className="bg-muted/70 font-mono text-sm tracking-wide"
+                  {...form.register('employee_id')}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  title="Regenerate User ID"
+                  onClick={() => form.setValue('employee_id', generateEmployeeId(), { shouldValidate: true })}
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  title="Copy User ID"
+                  onClick={() => copyToClipboard(watchedEmployeeId || '', 'userId')}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+              {form.formState.errors.employee_id && (
+                <p className="text-xs text-destructive">{form.formState.errors.employee_id.message}</p>
+              )}
+            </div>
+
+            {/* Auto-generated Password */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Temporary Password <span className="text-xs text-muted-foreground font-normal">(Auto-generated)</span></Label>
+                {copied === 'password' && (
+                  <span className="text-xs text-green-600 flex items-center gap-1 font-medium">
+                    <Check className="w-3 h-3" /> Copied!
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    readOnly
+                    value={watchedPassword || ''}
+                    className="bg-muted/70 font-mono text-sm tracking-wider pr-10"
+                    {...form.register('password')}
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 transition-colors"
+                    onClick={() => setShowPassword(!showPassword)}
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  title="Regenerate Password"
+                  onClick={() => form.setValue('password', generatePassword(), { shouldValidate: true })}
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  title="Copy Password"
+                  onClick={() => copyToClipboard(watchedPassword || '', 'password')}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+              {form.formState.errors.password && (
+                <p className="text-xs text-destructive">{form.formState.errors.password.message}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Role</Label>
+                <Select
+                  defaultValue={UserRole.SALES_REP}
+                  onValueChange={(val) => form.setValue('role', val as any)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={UserRole.SALES_REP}>Sales Representative</SelectItem>
+                    <SelectItem value={UserRole.MANAGER}>Sales Manager</SelectItem>
+                    <SelectItem value={UserRole.ORG_ADMIN}>Organization Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Assign Team</Label>
+                <Select
+                  onValueChange={(val) => form.setValue('team_id', val === 'none' ? undefined : val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select team" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Team (Unassigned)</SelectItem>
+                    {teams.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Access Only - Box Tick / Checkbox Options */}
+            <div className="space-y-2 pt-2 border-t border-border/70">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div>
+                  <Label className="text-sm font-semibold flex items-center gap-1.5">
+                    Access Only
+                    <span className="text-xs font-normal text-muted-foreground">
+                      (Tick allowed side panel functions)
+                    </span>
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Tick the functions this employee is allowed to view in the side panel.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant={selectedAccess.length === SIDE_PANEL_FUNCTIONS.length ? 'default' : selectedAccess.length > 0 ? 'secondary' : 'outline'}
+                    className="text-[11px]"
+                  >
+                    {selectedAccess.length === SIDE_PANEL_FUNCTIONS.length
+                      ? `All Selected (${SIDE_PANEL_FUNCTIONS.length})`
+                      : `${selectedAccess.length} / ${SIDE_PANEL_FUNCTIONS.length} Selected`}
+                  </Badge>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs px-2.5"
+                    onClick={handleSelectAllAccess}
+                  >
+                    {selectedAccess.length === SIDE_PANEL_FUNCTIONS.length ? 'Deselect All' : 'Select All'}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Tick box options container */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 bg-muted/20 border border-border/70 rounded-lg max-h-56 overflow-y-auto">
+                {SIDE_PANEL_FUNCTIONS.map((fn) => {
+                  const isChecked = selectedAccess.includes(fn.id);
+                  return (
+                    <label
+                      key={fn.id}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toggleAccess(fn.id);
+                      }}
+                      className={cn(
+                        "flex items-center gap-2.5 p-2 rounded-md border text-xs font-medium cursor-pointer transition-all select-none",
+                        isChecked
+                          ? "bg-primary/10 border-primary text-primary font-semibold shadow-xs"
+                          : "bg-background border-border/60 hover:bg-muted text-foreground/80 hover:text-foreground"
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {}}
+                        className="w-4 h-4 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer shrink-0"
+                      />
+                      <span className="truncate">{fn.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+
+              {selectedAccess.length === 0 && (
+                <p className="text-xs text-destructive font-medium">
+                  * Please tick at least one function to grant access.
+                </p>
+              )}
+            </div>
+
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Send Invite</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -18,9 +18,17 @@ import {
 } from '@/types';
 
 export function isLocalStorageMode(): boolean {
-  const forced = localStorage.getItem('salesos_db_mode');
-  if (forced === 'local') return true;
-  if (forced === 'supabase') return false;
+  try {
+    const forced = typeof localStorage !== 'undefined' ? localStorage.getItem('salesos_db_mode') : null;
+    if (forced === 'local') return true;
+    if (forced === 'supabase') return false;
+  } catch {}
+
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  // If no Supabase URL is set or it's a placeholder, use localDb automatically
+  if (!url || url.includes('placeholder') || url.includes('your-project-id')) {
+    return true;
+  }
   return false;
 }
 

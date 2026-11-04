@@ -120,51 +120,52 @@ export const employeesService = {
   },
 
   async invite(orgId: string, input: EmployeeInput): Promise<{ invitation_id: string }> {
-    if (isLocalStorageMode()) {
-      const newId = generateUUID();
-      const newProfile: Profile = {
-        id: newId,
-        organization_id: orgId,
-        first_name: input.first_name,
-        last_name: input.last_name,
-        email: input.email,
-        phone: input.phone || null,
-        username: input.email.split('@')[0],
-        employee_id: input.employee_id || `EMP-${Date.now().toString().slice(-4)}`,
-        role: (input.role as UserRole) || UserRole.SALES_REP,
-        team_id: input.team_id || null,
-        manager_id: input.manager_id || null,
-        avatar_url: null,
-        joining_date: new Date().toISOString().split('T')[0],
-        status: EmployeeStatus.ACTIVE,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      localDb.insert<Profile>('profiles', newProfile);
+    const newId = generateUUID();
+    const newProfile: Profile = {
+      id: newId,
+      organization_id: orgId,
+      first_name: input.first_name,
+      last_name: input.last_name,
+      email: input.email,
+      phone: input.phone || null,
+      username: input.username || input.email.split('@')[0],
+      employee_id: input.employee_id || `EMP-${Date.now().toString().slice(-4)}`,
+      role: (input.role as UserRole) || UserRole.SALES_REP,
+      team_id: input.team_id || null,
+      manager_id: input.manager_id || null,
+      avatar_url: null,
+      joining_date: new Date().toISOString().split('T')[0],
+      status: EmployeeStatus.ACTIVE,
+      access_only: input.access_only || 'ALL',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
 
-      return { invitation_id: newId };
+    // Always persist to local database first
+    localDb.insert<Profile>('profiles', newProfile);
+
+    // If remote Supabase is configured, try syncing without crashing if offline
+    if (!isLocalStorageMode()) {
+      try {
+        await supabase
+          .from('employee_invitations')
+          .insert({
+            organization_id: orgId,
+            email: input.email,
+            first_name: input.first_name,
+            last_name: input.last_name,
+            role: input.role,
+            team_id: input.team_id || null,
+            manager_id: input.manager_id || null,
+            phone: input.phone || null,
+            employee_id_str: input.employee_id || null,
+          });
+      } catch (err) {
+        console.warn('[employeesService] Remote invitation sync notice:', err);
+      }
     }
 
-    // Create invitation record
-    const { data: invitation, error: invError } = await supabase
-      .from('employee_invitations')
-      .insert({
-        organization_id: orgId,
-        email: input.email,
-        first_name: input.first_name,
-        last_name: input.last_name,
-        role: input.role,
-        team_id: input.team_id || null,
-        manager_id: input.manager_id || null,
-        phone: input.phone || null,
-        employee_id_str: input.employee_id || null,
-      })
-      .select()
-      .single();
-
-    if (invError) throw invError;
-
-    return { invitation_id: invitation.id };
+    return { invitation_id: newId };
   },
 
   async create(orgId: string, input: EmployeeInput): Promise<{ invitation_id: string }> {
@@ -185,6 +186,18 @@ export const employeesService = {
 
     if (error) throw error;
     return data as unknown as Profile;
+  },
+
+  async delete(id: string): Promise<void> {
+    localDb.delete('profiles', id);
+
+    if (!isLocalStorageMode()) {
+      try {
+        await supabase.from('profiles').delete().eq('id', id);
+      } catch (err) {
+        console.warn('[employeesService] Remote profile delete notice:', err);
+      }
+    }
   },
 
   async deactivate(id: string): Promise<void> {

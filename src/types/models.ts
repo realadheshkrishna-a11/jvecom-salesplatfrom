@@ -55,6 +55,7 @@ export interface Profile {
   avatar_url: string | null;
   joining_date: string | null;
   status: EmployeeStatus;
+  access_only?: string | null;
   created_at: string;
   updated_at: string;
   // Joined

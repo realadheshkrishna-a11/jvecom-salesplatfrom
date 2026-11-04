@@ -39,8 +39,8 @@ const navItems: NavItem[] = [
   { label: 'Commissions', path: '/commissions', icon: <DollarSign size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.SALES_REP], comingSoon: true },
   { label: 'Bonuses', path: '/bonuses', icon: <Gift size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.SALES_REP], comingSoon: true },
   { label: 'Analytics', path: '/analytics', icon: <BarChart3 size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], comingSoon: true },
-  { label: 'Employees', path: '/employees', icon: <Users size={20} />, roles: [UserRole.ORG_ADMIN], comingSoon: true },
-  { label: 'Teams', path: '/teams', icon: <Briefcase size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], comingSoon: true },
+  { label: 'Employees', path: '/employees', icon: <Users size={20} />, roles: [UserRole.ORG_ADMIN] },
+  { label: 'Teams', path: '/teams', icon: <Briefcase size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
   { label: 'Reports', path: '/reports', icon: <FileText size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], comingSoon: true },
   { label: 'Notifications', path: '/notifications', icon: <Bell size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP], comingSoon: true },
   { label: 'Audit Logs', path: '/audit-logs', icon: <Shield size={20} />, roles: [UserRole.ORG_ADMIN], comingSoon: true },
@@ -82,11 +82,40 @@ export function Sidebar() {
   }, [userEmail]);
 
   const role = profile?.role as UserRole | undefined;
-  const items = role === UserRole.SUPER_ADMIN
+  let items = role === UserRole.SUPER_ADMIN
     ? superAdminItems
     : profile
       ? navItems.filter(item => role && item.roles.includes(role))
       : navItems;
+
+  if (profile?.access_only && profile.access_only !== 'ALL') {
+    const allowed = profile.access_only.split(',').map(s => s.trim().toLowerCase());
+    const pathKeyMap: Record<string, string> = {
+      '/dashboard': 'dashboard',
+      '/leads': 'crm',
+      '/sales': 'sales',
+      '/b2b-orders': 'b2b-orders',
+      '/products': 'products',
+      '/customers': 'customers',
+      '/mail': 'mail',
+      '/targets': 'targets',
+      '/leaderboard': 'leaderboard',
+      '/gamification': 'gamification',
+      '/commissions': 'commissions',
+      '/bonuses': 'bonuses',
+      '/analytics': 'analytics',
+      '/employees': 'employees',
+      '/teams': 'teams',
+      '/reports': 'reports',
+      '/notifications': 'notifications',
+      '/audit-logs': 'audit-logs',
+      '/settings': 'settings',
+    };
+    items = items.filter(it => {
+      const key = pathKeyMap[it.path];
+      return key ? allowed.includes(key) : true;
+    });
+  }
 
   const isMailActive = location.pathname.startsWith('/mail');
   const currentParams = new URLSearchParams(location.search);

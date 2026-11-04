@@ -49,8 +49,6 @@ const comingSoonTitleMap: Record<string, string> = {
   '/commissions': 'Commissions',
   '/bonuses': 'Bonuses',
   '/analytics': 'Analytics',
-  '/employees': 'Employees',
-  '/teams': 'Teams',
   '/reports': 'Reports',
   '/notifications': 'Notifications',
   '/audit-logs': 'Audit Logs',
@@ -100,9 +98,9 @@ export function App() {
                 <Route path="/reports" element={<ComingSoonRoute title={comingSoonTitleMap['/reports']} />} />
 
                 {/* People & Teams */}
-                <Route path="/employees" element={<ComingSoonRoute title={comingSoonTitleMap['/employees']} />} />
-                <Route path="/employees/:id" element={<ComingSoonRoute title="Employee Details" />} />
-                <Route path="/teams" element={<ComingSoonRoute title={comingSoonTitleMap['/teams']} />} />
+                <Route path="/employees" element={<EmployeeListPage />} />
+                <Route path="/employees/:id" element={<EmployeeDetailPage />} />
+                <Route path="/teams" element={<TeamListPage />} />
 
                 {/* Notifications, Security Audit & Settings */}
                 <Route path="/notifications" element={<ComingSoonRoute title={comingSoonTitleMap['/notifications']} />} />

@@ -51,12 +51,14 @@ export const employeeSchema = z.object({
   last_name: z.string().min(1, 'Last name is required'),
   email: z.string().email('Please enter a valid email'),
   phone: z.string().optional(),
-  username: z.string().optional(),
-  employee_id: z.string().optional(),
+  username: z.string().min(3, 'Username must be at least 3 characters'),
+  employee_id: z.string().min(1, 'User ID is required'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   role: z.enum(['ORG_ADMIN', 'MANAGER', 'SALES_REP']),
   team_id: z.string().optional(),
   manager_id: z.string().optional(),
   joining_date: z.string().optional(),
+  access_only: z.string().optional(),
 });
 export type EmployeeInput = z.infer<typeof employeeSchema>;
 

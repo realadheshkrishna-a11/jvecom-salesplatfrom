@@ -566,6 +566,75 @@ export const emailService = {
   },
 
   /**
+   * Deliver an incoming message directly into the inbox folder
+   * (e.g. system welcome emails, credentials, notifications)
+   */
+  deliverToInbox({
+    to,
+    fromName,
+    fromAddress,
+    subject,
+    html,
+    text,
+    orgId = DEFAULT_ORG_ID,
+  }: {
+    to: string;
+    fromName: string;
+    fromAddress: string;
+    subject: string;
+    html: string;
+    text: string;
+    orgId?: string;
+  }) {
+    const now = new Date().toISOString();
+    const threadId = generateUUID();
+    const messageId = generateUUID();
+
+    const inboxThread: EmailThread = {
+      id: threadId,
+      organization_id: orgId,
+      subject,
+      participants: [fromAddress, to],
+      last_message_at: now,
+      unread_count: 1,
+      folder: 'inbox',
+      created_at: now,
+    };
+
+    const inboxMessage: EmailMessage = {
+      id: messageId,
+      thread_id: threadId,
+      organization_id: orgId,
+      from_address: fromAddress,
+      from_name: fromName,
+      to_addresses: [to],
+      cc_addresses: [],
+      subject,
+      body_html: html,
+      body_text: text,
+      status: 'sent',
+      delivery_status: 'live_delivered',
+      is_read: false,
+      sent_at: now,
+    };
+
+    const threads = getLocalThreads();
+    threads.unshift(inboxThread);
+    saveLocalThreads(threads);
+
+    const messages = getLocalMessages();
+    messages.push(inboxMessage);
+    saveLocalMessages(messages);
+
+    notifyListeners();
+
+    try {
+      Promise.resolve(supabase.from('email_threads').insert(inboxThread)).catch(() => {});
+      Promise.resolve(supabase.from('email_messages').insert(inboxMessage)).catch(() => {});
+    } catch {}
+  },
+
+  /**
    * Test connection to Resend API and verify real delivery.
    */
   async testConnection(apiKey: string, testRecipient: string): Promise<{ success: boolean; message: string; resendId?: string }> {

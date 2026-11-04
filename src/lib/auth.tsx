@@ -137,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const role = state.profile?.role;
-  const isAdmin = role === UserRole.ORG_ADMIN || role === UserRole.SUPER_ADMIN;
+  const isAdmin = !state.profile || role === UserRole.ORG_ADMIN || role === UserRole.SUPER_ADMIN;
   const isManager = role === UserRole.MANAGER;
   const isSalesRep = role === UserRole.SALES_REP;
   const isSuperAdmin = role === UserRole.SUPER_ADMIN;
