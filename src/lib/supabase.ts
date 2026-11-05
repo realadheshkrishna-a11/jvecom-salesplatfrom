@@ -7,31 +7,16 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 // ---------------------------------------------------------------------------
-// Environment validation
+// Environment validation & production defaults
 // ---------------------------------------------------------------------------
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+export const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || 'https://qkwxsiezhyarpcfnbjja.supabase.co').trim();
+export const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrd3hzaWV6aHlhcnBjZm5iamphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1NTE2NjcsImV4cCI6MjEwODEyNzY2N30.BZiI_00l9WhA80IFTs0ovIxW5VZI3DhUGkpWIYGMzOc').trim();
 const appEnv = import.meta.env.VITE_APP_ENV ?? 'development';
 
 function validateConfig(): { url: string; key: string } {
-  const missing: string[] = [];
-
-  if (!supabaseUrl) missing.push('VITE_SUPABASE_URL');
-  if (!supabaseAnonKey) missing.push('VITE_SUPABASE_ANON_KEY');
-
-  if (missing.length > 0) {
-    const message = `[SalesOS] Missing required environment variables: ${missing.join(', ')}. ` +
-      `Copy .env.example to .env and fill in your Supabase credentials.`;
-
-    if (appEnv === 'production') {
-      throw new Error(message);
-    }
-    console.warn(message);
-  }
-
   return {
-    url: supabaseUrl || 'https://placeholder.supabase.co',
-    key: supabaseAnonKey || 'placeholder-key',
+    url: SUPABASE_URL,
+    key: SUPABASE_ANON_KEY,
   };
 }
 
@@ -94,7 +79,7 @@ export async function checkSupabaseConnection(): Promise<{
 }
 
 // Log connection status in development
-if (appEnv === 'development' && supabaseUrl && !supabaseUrl.includes('placeholder')) {
+if (appEnv === 'development' && SUPABASE_URL && !SUPABASE_URL.includes('placeholder')) {
   checkSupabaseConnection().then((result) => {
     if (result.connected) {
       console.info(`[SalesOS] ✅ Supabase connected (${result.latencyMs}ms)`);
