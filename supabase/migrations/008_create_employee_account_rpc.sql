@@ -221,3 +221,4 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.create_employee_account TO anon, authenticated, service_role;
 NOTIFY pgrst, 'reload schema';
+
