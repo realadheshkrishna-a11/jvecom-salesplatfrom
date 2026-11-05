@@ -4,6 +4,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { localDb, isLocalStorageMode, generateUUID } from '@/lib/localDb';
+import { saveLocalCredential, removeLocalCredential } from '@/lib/localCredentials';
 import type { Profile, Team, Organization, EmployeeInvitation, PaginatedResponse } from '@/types';
 import { UserRole, EmployeeStatus } from '@/types';
 import type { EmployeeInput } from '@/schemas';
@@ -120,7 +121,49 @@ export const employeesService = {
   },
 
   async invite(orgId: string, input: EmployeeInput): Promise<{ invitation_id: string }> {
-    const newId = generateUUID();
+    let newId = generateUUID();
+
+    // 1. If remote Supabase is configured, try invoking the invite-employee edge function
+    if (!isLocalStorageMode()) {
+      try {
+        const { data, error } = await supabase.functions.invoke('invite-employee', {
+          body: {
+            organization_id: orgId,
+            email: input.email,
+            password: input.password,
+            first_name: input.first_name,
+            last_name: input.last_name,
+            username: input.username,
+            employee_id: input.employee_id,
+            role: input.role,
+            team_id: input.team_id || null,
+            manager_id: input.manager_id || null,
+            phone: input.phone || null,
+            access_only: input.access_only || 'ALL',
+          },
+        });
+        if (!error && data?.profile_id) {
+          newId = data.profile_id;
+        } else {
+          await supabase
+            .from('employee_invitations')
+            .insert({
+              organization_id: orgId,
+              email: input.email,
+              first_name: input.first_name,
+              last_name: input.last_name,
+              role: input.role,
+              team_id: input.team_id || null,
+              manager_id: input.manager_id || null,
+              phone: input.phone || null,
+              employee_id_str: input.employee_id || null,
+            });
+        }
+      } catch (err) {
+        console.warn('[employeesService] Remote invitation sync notice:', err);
+      }
+    }
+
     const newProfile: Profile = {
       id: newId,
       organization_id: orgId,
@@ -144,25 +187,9 @@ export const employeesService = {
     // Always persist to local database first
     localDb.insert<Profile>('profiles', newProfile);
 
-    // If remote Supabase is configured, try syncing without crashing if offline
-    if (!isLocalStorageMode()) {
-      try {
-        await supabase
-          .from('employee_invitations')
-          .insert({
-            organization_id: orgId,
-            email: input.email,
-            first_name: input.first_name,
-            last_name: input.last_name,
-            role: input.role,
-            team_id: input.team_id || null,
-            manager_id: input.manager_id || null,
-            phone: input.phone || null,
-            employee_id_str: input.employee_id || null,
-          });
-      } catch (err) {
-        console.warn('[employeesService] Remote invitation sync notice:', err);
-      }
+    // Save local credential so the employee can log in immediately
+    if (input.password) {
+      await saveLocalCredential(newId, input.email, input.password);
     }
 
     return { invitation_id: newId };
@@ -190,6 +217,7 @@ export const employeesService = {
 
   async delete(id: string): Promise<void> {
     localDb.delete('profiles', id);
+    removeLocalCredential(id);
 
     if (!isLocalStorageMode()) {
       try {

@@ -57,7 +57,7 @@ const superAdminItems: NavItem[] = [
 ];
 
 export function Sidebar() {
-  const { profile, organization } = useAuth();
+  const { profile, organization, canAccessPath } = useAuth();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -82,40 +82,11 @@ export function Sidebar() {
   }, [userEmail]);
 
   const role = profile?.role as UserRole | undefined;
-  let items = role === UserRole.SUPER_ADMIN
+  // Super admins get their platform menu; everyone else sees exactly the
+  // modules resolved from their role + the Org Admin's invitation assignment.
+  const items = role === UserRole.SUPER_ADMIN
     ? superAdminItems
-    : profile
-      ? navItems.filter(item => role && item.roles.includes(role))
-      : navItems;
-
-  if (profile?.access_only && profile.access_only !== 'ALL') {
-    const allowed = profile.access_only.split(',').map(s => s.trim().toLowerCase());
-    const pathKeyMap: Record<string, string> = {
-      '/dashboard': 'dashboard',
-      '/leads': 'crm',
-      '/sales': 'sales',
-      '/b2b-orders': 'b2b-orders',
-      '/products': 'products',
-      '/customers': 'customers',
-      '/mail': 'mail',
-      '/targets': 'targets',
-      '/leaderboard': 'leaderboard',
-      '/gamification': 'gamification',
-      '/commissions': 'commissions',
-      '/bonuses': 'bonuses',
-      '/analytics': 'analytics',
-      '/employees': 'employees',
-      '/teams': 'teams',
-      '/reports': 'reports',
-      '/notifications': 'notifications',
-      '/audit-logs': 'audit-logs',
-      '/settings': 'settings',
-    };
-    items = items.filter(it => {
-      const key = pathKeyMap[it.path];
-      return key ? allowed.includes(key) : true;
-    });
-  }
+    : navItems.filter(item => canAccessPath(item.path));
 
   const isMailActive = location.pathname.startsWith('/mail');
   const currentParams = new URLSearchParams(location.search);

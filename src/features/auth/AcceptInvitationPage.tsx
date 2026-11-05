@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/toast';
-import { Lock, User, CheckCircle2 } from 'lucide-react';
+import { Lock, User, ArrowLeft } from 'lucide-react';
 
 export function AcceptInvitationPage() {
   const [searchParams] = useSearchParams();
@@ -49,7 +49,7 @@ export function AcceptInvitationPage() {
       if (error) throw error;
 
       toastSuccess('Account activated!', 'Your SalesOS workspace is ready.');
-      navigate('/');
+      navigate('/login');
     } catch (err: unknown) {
       toastError('Activation failed', err instanceof Error ? err.message : 'Please check your invitation link');
     } finally {
@@ -64,9 +64,9 @@ export function AcceptInvitationPage() {
           <div className="w-10 h-10 rounded-xl bg-blue-600 text-white font-bold mx-auto flex items-center justify-center mb-2">
             S
           </div>
-          <CardTitle className="text-2xl font-bold">Join Your Team</CardTitle>
+          <CardTitle className="text-2xl font-bold">Accept Invitation</CardTitle>
           <CardDescription>
-            Complete your profile to accept the invitation and enter SalesOS
+            Complete your profile details below to activate your sales workspace
           </CardDescription>
         </CardHeader>
 
@@ -74,12 +74,12 @@ export function AcceptInvitationPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
+                <Label htmlFor="firstName">First name</Label>
                 <div className="relative">
                   <User className="w-4 h-4 text-muted-foreground absolute left-3 top-3" />
                   <Input
                     id="firstName"
-                    placeholder="Alex"
+                    placeholder="Adhesh"
                     className="pl-9"
                     required
                     {...form.register('firstName')}
@@ -87,10 +87,10 @@ export function AcceptInvitationPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
+                <Label htmlFor="lastName">Last name</Label>
                 <Input
                   id="lastName"
-                  placeholder="Morgan"
+                  placeholder="Krishna"
                   required
                   {...form.register('lastName')}
                 />
@@ -133,7 +133,10 @@ export function AcceptInvitationPage() {
               {loading ? 'Activating account...' : 'Activate & Enter SalesOS'}
             </Button>
             <Button asChild variant="ghost" className="w-full">
-              <Link to="/dashboard">Return to dashboard</Link>
+              <Link to="/login" className="flex items-center justify-center gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Back to Sign In
+              </Link>
             </Button>
           </CardFooter>
         </form>
@@ -141,3 +144,4 @@ export function AcceptInvitationPage() {
     </div>
   );
 }
+export default AcceptInvitationPage;

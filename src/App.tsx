@@ -2,8 +2,15 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/lib/auth';
 import { ToastProvider } from '@/components/ui/toast';
 import { ProtectedRoute } from '@/routes/ProtectedRoute';
+import { ModuleGuard, HomeRedirect } from '@/routes/ModuleGuard';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ComingSoon } from '@/components/common/ComingSoon';
+
+// Auth Pages
+import { LoginPage } from '@/features/auth/LoginPage';
+import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/features/auth/ResetPasswordPage';
+import { AcceptInvitationPage } from '@/features/auth/AcceptInvitationPage';
 
 // Dashboards
 import { DashboardRouter } from '@/features/dashboard/DashboardRouter';
@@ -65,10 +72,18 @@ export function App() {
       <AuthProvider>
         <ToastProvider>
           <Routes>
-            {/* SaaS App Routes */}
+            {/* Public Authentication Pages */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
+
+            {/* Protected SaaS App Routes */}
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/" element={<HomeRedirect />} />
+                {/* Every route below is checked against the employee's assigned modules */}
+                <Route element={<ModuleGuard />}>
                 <Route path="/dashboard" element={<DashboardRouter />} />
 
                 {/* CRM, Sales, B2B Orders & Mail */}
@@ -106,11 +121,12 @@ export function App() {
                 <Route path="/notifications" element={<ComingSoonRoute title={comingSoonTitleMap['/notifications']} />} />
                 <Route path="/audit-logs" element={<ComingSoonRoute title={comingSoonTitleMap['/audit-logs']} />} />
                 <Route path="/settings" element={<ComingSoonRoute title={comingSoonTitleMap['/settings']} />} />
+                </Route>
               </Route>
             </Route>
 
             {/* Catch-all redirect */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<HomeRedirect />} />
           </Routes>
         </ToastProvider>
       </AuthProvider>

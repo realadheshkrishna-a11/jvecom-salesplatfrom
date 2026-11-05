@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/toast';
-import { Lock } from 'lucide-react';
+import { Lock, ArrowLeft } from 'lucide-react';
 
 export function ResetPasswordPage() {
   const { updatePassword } = useAuth();
@@ -34,7 +34,7 @@ export function ResetPasswordPage() {
       toastError('Failed to update password', error.message);
     } else {
       toastSuccess('Password updated!', 'You can now log in with your new password.');
-      navigate('/dashboard');
+      navigate('/login');
     }
   };
 
@@ -93,7 +93,10 @@ export function ResetPasswordPage() {
               {loading ? 'Updating...' : 'Update Password & Log In'}
             </Button>
             <Button asChild variant="ghost" className="w-full">
-              <Link to="/dashboard">Cancel</Link>
+              <Link to="/login" className="flex items-center justify-center gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Back to Sign In
+              </Link>
             </Button>
           </CardFooter>
         </form>

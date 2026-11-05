@@ -57,7 +57,7 @@ export function ForgotPasswordPage() {
               We've emailed a password reset link to <span className="font-semibold text-foreground">{form.getValues('email')}</span>.
             </p>
             <Button asChild variant="outline" className="w-full mt-4">
-              <Link to="/dashboard">Return to dashboard</Link>
+              <Link to="/login">Return to Sign In</Link>
             </Button>
           </CardContent>
         ) : (
@@ -86,9 +86,9 @@ export function ForgotPasswordPage() {
                 {loading ? 'Sending link...' : 'Send reset link'}
               </Button>
               <Button asChild variant="ghost" className="w-full">
-                <Link to="/dashboard" className="flex items-center justify-center gap-2">
+                <Link to="/login" className="flex items-center justify-center gap-2">
                   <ArrowLeft className="w-4 h-4" />
-                  Back to dashboard
+                  Back to Sign In
                 </Link>
               </Button>
             </CardFooter>

@@ -20,6 +20,14 @@ export function TopNav({ breadcrumbs = [] }: TopNavProps) {
   const navigate = useNavigate();
   const { count: unreadCount } = useNotificationCount();
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } finally {
+      navigate('/login', { replace: true });
+    }
+  };
+
   return (
     <header className="sticky top-0 z-30 flex h-[72px] items-center gap-4 border-b border-border/70 bg-background/90 px-5 backdrop-blur lg:px-8">
       {/* Breadcrumbs / Page Title */}
@@ -93,7 +101,7 @@ export function TopNav({ breadcrumbs = [] }: TopNavProps) {
               Settings &amp; Preferences
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
+            <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive cursor-pointer">
               <LogOut className="h-4 w-4 mr-2" />
               Sign out
             </DropdownMenuItem>

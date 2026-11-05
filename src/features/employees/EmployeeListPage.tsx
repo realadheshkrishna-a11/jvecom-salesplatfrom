@@ -5,6 +5,9 @@ import { emailService } from '@/services/email.service';
 import { teamsService } from '@/services/teams.service';
 import type { Profile, Team } from '@/types';
 import { UserRole, EmployeeStatus } from '@/types';
+import { MODULES, ROLE_DEFAULT_MODULES, serializeAccess, type ModuleId } from '@/lib/permissions';
+
+export const SIDE_PANEL_FUNCTIONS = MODULES;
 import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingSpinner, EmptyState } from '@/components/common/EmptyState';
 import { Button } from '@/components/ui/button';
@@ -18,32 +21,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
-import { Search, Mail, UserPlus, RefreshCw, Copy, Eye, EyeOff, Check, Trash2 } from 'lucide-react';
+import { Search, Mail, UserPlus, RefreshCw, Copy, Eye, EyeOff, Check, Trash2, ShieldCheck, Lock } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { employeeSchema, type EmployeeInput } from '@/schemas';
-
-export const SIDE_PANEL_FUNCTIONS = [
-  { id: 'dashboard', label: 'Dashboard' },
-  { id: 'crm', label: 'CRM' },
-  { id: 'sales', label: 'Sales' },
-  { id: 'b2b-orders', label: 'B2B Orders' },
-  { id: 'products', label: 'Products' },
-  { id: 'customers', label: 'Customers' },
-  { id: 'mail', label: 'Mail' },
-  { id: 'targets', label: 'Targets' },
-  { id: 'leaderboard', label: 'Leaderboard' },
-  { id: 'gamification', label: 'XP & Achievements' },
-  { id: 'commissions', label: 'Commissions' },
-  { id: 'bonuses', label: 'Bonuses' },
-  { id: 'analytics', label: 'Analytics' },
-  { id: 'employees', label: 'Employees' },
-  { id: 'teams', label: 'Teams' },
-  { id: 'reports', label: 'Reports' },
-  { id: 'notifications', label: 'Notifications' },
-  { id: 'audit-logs', label: 'Audit Logs' },
-  { id: 'settings', label: 'Settings' },
-];
 
 function buildInvitationEmail({
   firstName,
@@ -67,7 +48,7 @@ function buildInvitationEmail({
   orgName: string;
 }) {
   const roleName = String(role).replace(/_/g, ' ');
-  const loginUrl = `${window.location.origin}/login`;
+  const loginUrl = `${window.location.origin}/login?email=${encodeURIComponent(email)}`;
 
   const html = `<!DOCTYPE html>
 <html>
@@ -82,7 +63,7 @@ function buildInvitationEmail({
     <tr>
       <td style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);padding:32px 28px;text-align:center;color:#ffffff;">
         <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-0.02em;color:#ffffff;">Welcome to ${orgName}</h1>
-        <p style="margin:8px 0 0 0;font-size:14px;color:#dbeafe;">Your employee account has been created</p>
+        <p style="margin:8px 0 0 0;font-size:14px;color:#dbeafe;">Your employee account has been created & activated</p>
       </td>
     </tr>
     <!-- Content -->
@@ -90,7 +71,7 @@ function buildInvitationEmail({
       <td style="padding:32px 28px;">
         <div style="font-size:16px;font-weight:600;color:#0f172a;margin-bottom:12px;">Hello ${firstName} ${lastName},</div>
         <p style="font-size:14px;line-height:1.6;color:#475569;margin-bottom:24px;">
-          You have been invited to join <strong>${orgName}</strong> on the SalesOS platform. Your employee account is active and ready. Below are your login credentials:
+          You have been invited to join <strong>${orgName}</strong> on the SalesOS CRM platform. Your employee account is active and ready. Click the button below to sign in:
         </p>
 
         <!-- Credentials Card -->
@@ -101,14 +82,6 @@ function buildInvitationEmail({
             </td>
           </tr>
           <tr>
-            <td style="padding:10px 0;font-size:13px;font-weight:600;color:#334155;border-bottom:1px solid #e2e8f0;">Username</td>
-            <td style="padding:10px 0;font-size:14px;font-family:monospace;font-weight:700;color:#0f172a;text-align:right;border-bottom:1px solid #e2e8f0;">${username}</td>
-          </tr>
-          <tr>
-            <td style="padding:10px 0;font-size:13px;font-weight:600;color:#334155;border-bottom:1px solid #e2e8f0;">User ID</td>
-            <td style="padding:10px 0;font-size:14px;font-family:monospace;font-weight:700;color:#0f172a;text-align:right;border-bottom:1px solid #e2e8f0;">${employeeId}</td>
-          </tr>
-          <tr>
             <td style="padding:10px 0;font-size:13px;font-weight:600;color:#334155;border-bottom:1px solid #e2e8f0;">Work Email</td>
             <td style="padding:10px 0;font-size:14px;font-family:monospace;font-weight:700;color:#0f172a;text-align:right;border-bottom:1px solid #e2e8f0;">${email}</td>
           </tr>
@@ -117,25 +90,38 @@ function buildInvitationEmail({
             <td style="padding:10px 0;font-size:14px;font-family:monospace;font-weight:700;color:#2563eb;text-align:right;border-bottom:1px solid #e2e8f0;">${password}</td>
           </tr>
           <tr>
+            <td style="padding:10px 0;font-size:13px;font-weight:600;color:#334155;border-bottom:1px solid #e2e8f0;">Username</td>
+            <td style="padding:10px 0;font-size:14px;font-family:monospace;font-weight:700;color:#0f172a;text-align:right;border-bottom:1px solid #e2e8f0;">${username}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0;font-size:13px;font-weight:600;color:#334155;border-bottom:1px solid #e2e8f0;">User ID</td>
+            <td style="padding:10px 0;font-size:14px;font-family:monospace;font-weight:700;color:#0f172a;text-align:right;border-bottom:1px solid #e2e8f0;">${employeeId}</td>
+          </tr>
+          <tr>
             <td style="padding:10px 0;font-size:13px;font-weight:600;color:#334155;border-bottom:1px solid #e2e8f0;">Assigned Role</td>
             <td style="padding:10px 0;font-size:13px;font-weight:700;color:#1e40af;text-align:right;border-bottom:1px solid #e2e8f0;">${roleName}</td>
           </tr>
           <tr>
-            <td style="padding:10px 0;font-size:13px;font-weight:600;color:#334155;">Access Only</td>
+            <td style="padding:10px 0;font-size:13px;font-weight:600;color:#334155;">Allowed Modules</td>
             <td style="padding:10px 0;font-size:13px;font-weight:700;color:#0f172a;text-align:right;">${accessOnly || 'All Functions (Full Access)'}</td>
           </tr>
         </table>
 
-        <p style="font-size:13px;line-height:1.5;color:#64748b;margin:20px 0 28px;">
-          <strong>Security Notice:</strong> Please keep these credentials confidential. You can update your password upon signing in.
-        </p>
-
         <!-- CTA Button -->
-        <div style="text-align:center;margin:32px 0 16px;">
-          <a href="${loginUrl}" style="background-color:#2563eb;color:#ffffff;display:inline-block;padding:12px 32px;font-size:14px;font-weight:600;border-radius:8px;text-decoration:none;box-shadow:0 2px 4px rgba(37,99,235,0.25);">
+        <div style="text-align:center;margin:32px 0 20px;">
+          <a href="${loginUrl}" style="background-color:#2563eb;color:#ffffff;display:inline-block;padding:14px 36px;font-size:15px;font-weight:700;border-radius:8px;text-decoration:none;box-shadow:0 4px 6px -1px rgba(37,99,235,0.3);">
             Access Your Account
           </a>
         </div>
+
+        <p style="font-size:13px;line-height:1.5;color:#64748b;margin:20px 0 10px;text-align:center;">
+          Button not clickable? Copy and paste this link in your browser:<br/>
+          <a href="${loginUrl}" style="color:#2563eb;word-break:break-all;font-size:12px;">${loginUrl}</a>
+        </p>
+
+        <p style="font-size:13px;line-height:1.5;color:#64748b;margin:20px 0 10px;">
+          <strong>Security Notice:</strong> Please keep these credentials confidential. You will be redirected to the CRM login page and can change your password anytime in Settings.
+        </p>
       </td>
     </tr>
     <!-- Footer -->
@@ -153,17 +139,18 @@ function buildInvitationEmail({
 
 Hello ${firstName} ${lastName},
 
-You have been invited to join ${orgName} on the SalesOS platform. Your employee account is active and ready.
+You have been invited to join ${orgName} on the SalesOS CRM platform. Your employee account is active and ready.
 
 Your login credentials:
-- Username: ${username}
-- User ID: ${employeeId}
 - Work Email: ${email}
 - Temporary Password: ${password}
+- Username: ${username}
+- User ID: ${employeeId}
 - Assigned Role: ${roleName}
-- Access Only: ${accessOnly || 'All Functions (Full Access)'}
+- Allowed Modules: ${accessOnly || 'All Functions (Full Access)'}
 
-Log in to your account at: ${loginUrl}
+Access Your Account:
+${loginUrl}
 
 Security Notice: Please keep these credentials confidential and update your password after your initial sign-in.
 
@@ -210,31 +197,26 @@ export function EmployeeListPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [selectedAccess, setSelectedAccess] = useState<string[]>(
-    SIDE_PANEL_FUNCTIONS.map((f) => f.id)
+    ROLE_DEFAULT_MODULES[UserRole.SALES_REP]
   );
 
   const toggleAccess = (id: string) => {
+    if (id === 'dashboard') return; // Dashboard is always mandatory for landing
     const next = selectedAccess.includes(id)
       ? selectedAccess.filter((m) => m !== id)
       : [...selectedAccess, id];
     setSelectedAccess(next);
-    if (next.length === SIDE_PANEL_FUNCTIONS.length) {
-      form.setValue('access_only', 'ALL');
-    } else if (next.length === 0) {
-      form.setValue('access_only', '');
-    } else {
-      form.setValue('access_only', next.join(','));
-    }
+    form.setValue('access_only', serializeAccess(next));
   };
 
   const handleSelectAllAccess = () => {
-    if (selectedAccess.length === SIDE_PANEL_FUNCTIONS.length) {
-      setSelectedAccess([]);
-      form.setValue('access_only', '');
+    if (selectedAccess.length === MODULES.length) {
+      setSelectedAccess(['dashboard']);
+      form.setValue('access_only', serializeAccess(['dashboard']));
     } else {
-      const allIds = SIDE_PANEL_FUNCTIONS.map((f) => f.id);
+      const allIds = MODULES.map((f) => f.id);
       setSelectedAccess(allIds);
-      form.setValue('access_only', 'ALL');
+      form.setValue('access_only', serializeAccess(allIds));
     }
   };
 
@@ -249,9 +231,16 @@ export function EmployeeListPage() {
       password: generatePassword(),
       role: UserRole.SALES_REP,
       team_id: '',
-      access_only: 'ALL',
+      access_only: serializeAccess(ROLE_DEFAULT_MODULES[UserRole.SALES_REP]),
     },
   });
+
+  const handleRoleChange = (role: UserRole.ORG_ADMIN | UserRole.MANAGER | UserRole.SALES_REP) => {
+    form.setValue('role', role);
+    const defaults = ROLE_DEFAULT_MODULES[role] || MODULES.map(m => m.id);
+    setSelectedAccess(defaults);
+    form.setValue('access_only', serializeAccess(defaults));
+  };
 
   const watchedEmployeeId = form.watch('employee_id');
   const watchedPassword = form.watch('password');
@@ -287,20 +276,25 @@ export function EmployeeListPage() {
 
   const onInviteSubmit = async (values: EmployeeInput) => {
     if (selectedAccess.length === 0) {
-      toastError('Access Required', 'Please tick at least one side panel function to grant access.');
+      toastError('Access Required', 'Please tick at least one module to grant access.');
       return;
     }
 
     try {
-      // 1. Create the employee profile record
-      await employeesService.create(orgId, values);
+      const accessOnly = serializeAccess(selectedAccess);
 
-      // 2. Prepare the invitation email containing username, userid and password
+      // 1. Create the employee profile record with permissions
+      await employeesService.create(orgId, {
+        ...values,
+        access_only: accessOnly,
+      });
+
+      // 2. Prepare the invitation email containing username, userid, password, and Access Your Account button
       const orgName = organization?.name || 'SalesOS';
-      const accessLabel = !values.access_only || values.access_only === 'ALL'
-        ? 'All Functions (Full Access)'
-        : values.access_only.split(',').map(m => {
-            const found = SIDE_PANEL_FUNCTIONS.find(f => f.id === m);
+      const accessLabel = selectedAccess.length === MODULES.length
+        ? 'All Modules (Full Workspace Access)'
+        : selectedAccess.map(m => {
+            const found = MODULES.find(f => f.id === m);
             return found ? found.label : m;
           }).join(', ');
 
@@ -349,7 +343,7 @@ export function EmployeeListPage() {
 
       success(
         'Invitation & Credentials Sent',
-        `Account created and email with credentials dispatched to ${values.email}`
+        `Account created with RBAC permissions and email dispatched to ${values.email}`
       );
       setIsDialogOpen(false);
       form.reset({
@@ -361,6 +355,7 @@ export function EmployeeListPage() {
         password: generatePassword(),
         role: UserRole.SALES_REP,
         team_id: '',
+        access_only: serializeAccess(ROLE_DEFAULT_MODULES[UserRole.SALES_REP]),
       });
       setShowPassword(false);
       loadData();
@@ -394,8 +389,9 @@ export function EmployeeListPage() {
     if (open) {
       const newEmpId = generateEmployeeId();
       const newPassword = generatePassword();
-      const allIds = SIDE_PANEL_FUNCTIONS.map((f) => f.id);
-      setSelectedAccess(allIds);
+      const defaultRole = UserRole.SALES_REP;
+      const defaults = ROLE_DEFAULT_MODULES[defaultRole] || MODULES.map(m => m.id);
+      setSelectedAccess(defaults);
       form.reset({
         first_name: '',
         last_name: '',
@@ -403,9 +399,9 @@ export function EmployeeListPage() {
         username: '',
         employee_id: newEmpId,
         password: newPassword,
-        role: UserRole.SALES_REP,
+        role: defaultRole,
         team_id: '',
-        access_only: 'ALL',
+        access_only: serializeAccess(defaults),
       });
       setShowPassword(false);
       setCopied(null);
@@ -480,79 +476,95 @@ export function EmployeeListPage() {
                   <TableHead>Role</TableHead>
                   <TableHead>Team</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Allowed Access</TableHead>
                   <TableHead>Joined</TableHead>
                   <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredEmployees.map((emp) => (
-                  <TableRow key={emp.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-semibold text-sm text-foreground">
-                          {emp.first_name} {emp.last_name}
+                {filteredEmployees.map((emp) => {
+                  const accessTokens = (emp.access_only || 'ALL').split(',').map(s => s.trim().toLowerCase());
+                  const isFull = !emp.access_only || emp.access_only === 'ALL' || accessTokens.length >= MODULES.length;
+                  return (
+                    <TableRow key={emp.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-semibold text-sm text-foreground">
+                            {emp.first_name} {emp.last_name}
+                          </div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <Mail className="w-3 h-3" />
+                            {emp.email}
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                          <Mail className="w-3 h-3" />
-                          {emp.email}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-xs font-mono text-foreground font-medium">
+                          {emp.employee_id || '—'}
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-xs font-mono text-foreground font-medium">
-                        {emp.employee_id || '—'}
-                      </div>
-                      {emp.username && (
-                        <div className="text-[11px] text-muted-foreground">
-                          @{emp.username}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          emp.role === UserRole.ORG_ADMIN ? 'default' :
-                          emp.role === UserRole.MANAGER ? 'secondary' : 'outline'
-                        }
-                        className="text-[11px]"
-                      >
-                        {(emp.role ? String(emp.role).replace(/_/g, ' ') : 'Sales Rep')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm font-medium">
-                      {(emp.team as any)?.name || 'Unassigned'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={emp.status === EmployeeStatus.ACTIVE ? 'success' : 'warning'}
-                        className="text-[10px]"
-                      >
-                        {emp.status || 'ACTIVE'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {emp.created_at ? new Date(emp.created_at).toLocaleDateString() : 'N/A'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/employees/${emp.id}`} className="text-xs text-primary font-medium">
-                            Profile
-                          </Link>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                          title="Delete Employee"
-                          onClick={() => handleDeleteEmployee(emp.id, `${emp.first_name} ${emp.last_name}`)}
+                        {emp.username && (
+                          <div className="text-[11px] text-muted-foreground">
+                            @{emp.username}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            emp.role === UserRole.ORG_ADMIN ? 'default' :
+                            emp.role === UserRole.MANAGER ? 'secondary' : 'outline'
+                          }
+                          className="text-[11px]"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          {(emp.role ? String(emp.role).replace(/_/g, ' ') : 'Sales Rep')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm font-medium">
+                        {(emp.team as any)?.name || 'Unassigned'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={emp.status === EmployeeStatus.ACTIVE ? 'success' : 'warning'}
+                          className="text-[10px]"
+                        >
+                          {emp.status || 'ACTIVE'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {isFull ? (
+                          <Badge variant="outline" className="text-[10px] text-primary border-primary/30">
+                            Full Access
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {accessTokens.length} modules
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {emp.created_at ? new Date(emp.created_at).toLocaleDateString() : 'N/A'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link to={`/employees/${emp.id}`} className="text-xs text-primary font-medium">
+                              Profile
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            title="Delete Employee"
+                            onClick={() => handleDeleteEmployee(emp.id, `${emp.first_name} ${emp.last_name}`)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </CardContent>
@@ -565,7 +577,7 @@ export function EmployeeListPage() {
           <DialogHeader>
             <DialogTitle>Invite New Team Member</DialogTitle>
             <DialogDescription>
-              Create credentials and assign roles for the new employee.
+              Create credentials and assign dynamic module permissions for the new employee.
             </DialogDescription>
           </DialogHeader>
 
@@ -708,7 +720,7 @@ export function EmployeeListPage() {
                 <Label>Role</Label>
                 <Select
                   defaultValue={UserRole.SALES_REP}
-                  onValueChange={(val) => form.setValue('role', val as any)}
+                  onValueChange={(val) => handleRoleChange(val as UserRole.ORG_ADMIN | UserRole.MANAGER | UserRole.SALES_REP)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select role" />
@@ -741,28 +753,26 @@ export function EmployeeListPage() {
               </div>
             </div>
 
-            {/* Access Only - Box Tick / Checkbox Options */}
+            {/* Access Only - RBAC Module Permissions */}
             <div className="space-y-2 pt-2 border-t border-border/70">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div>
                   <Label className="text-sm font-semibold flex items-center gap-1.5">
-                    Access Only
-                    <span className="text-xs font-normal text-muted-foreground">
-                      (Tick allowed side panel functions)
-                    </span>
+                    <ShieldCheck className="w-4 h-4 text-primary" />
+                    Role-Based Access Control (RBAC)
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Tick the functions this employee is allowed to view in the side panel.
+                    Assign which CRM modules, features and pages this employee is allowed to view.
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge
-                    variant={selectedAccess.length === SIDE_PANEL_FUNCTIONS.length ? 'default' : selectedAccess.length > 0 ? 'secondary' : 'outline'}
+                    variant={selectedAccess.length === MODULES.length ? 'default' : selectedAccess.length > 0 ? 'secondary' : 'outline'}
                     className="text-[11px]"
                   >
-                    {selectedAccess.length === SIDE_PANEL_FUNCTIONS.length
-                      ? `All Selected (${SIDE_PANEL_FUNCTIONS.length})`
-                      : `${selectedAccess.length} / ${SIDE_PANEL_FUNCTIONS.length} Selected`}
+                    {selectedAccess.length === MODULES.length
+                      ? `All Modules (${MODULES.length})`
+                      : `${selectedAccess.length} / ${MODULES.length} Granted`}
                   </Badge>
                   <Button
                     type="button"
@@ -771,53 +781,57 @@ export function EmployeeListPage() {
                     className="h-7 text-xs px-2.5"
                     onClick={handleSelectAllAccess}
                   >
-                    {selectedAccess.length === SIDE_PANEL_FUNCTIONS.length ? 'Deselect All' : 'Select All'}
+                    {selectedAccess.length === MODULES.length ? 'Deselect All' : 'Select All'}
                   </Button>
                 </div>
               </div>
 
-              {/* Tick box options container */}
+              {/* Module selection checkboxes */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 bg-muted/20 border border-border/70 rounded-lg max-h-56 overflow-y-auto">
-                {SIDE_PANEL_FUNCTIONS.map((fn) => {
-                  const isChecked = selectedAccess.includes(fn.id);
+                {MODULES.map((mod) => {
+                  const isChecked = selectedAccess.includes(mod.id);
+                  const isMandatory = mod.id === 'dashboard';
                   return (
                     <label
-                      key={fn.id}
+                      key={mod.id}
                       onClick={(e) => {
                         e.preventDefault();
-                        toggleAccess(fn.id);
+                        if (!isMandatory) toggleAccess(mod.id);
                       }}
                       className={cn(
                         "flex items-center gap-2.5 p-2 rounded-md border text-xs font-medium cursor-pointer transition-all select-none",
                         isChecked
                           ? "bg-primary/10 border-primary text-primary font-semibold shadow-xs"
-                          : "bg-background border-border/60 hover:bg-muted text-foreground/80 hover:text-foreground"
+                          : "bg-background border-border/60 hover:bg-muted text-foreground/80 hover:text-foreground",
+                        isMandatory && "opacity-80 cursor-default"
                       )}
                     >
                       <input
                         type="checkbox"
                         checked={isChecked}
+                        disabled={isMandatory}
                         onChange={() => {}}
                         className="w-4 h-4 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer shrink-0"
                       />
-                      <span className="truncate">{fn.label}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate flex items-center gap-1">
+                          {mod.label}
+                          {isMandatory && (
+                            <span className="text-[9px] text-muted-foreground font-normal">(Home)</span>
+                          )}
+                        </div>
+                      </div>
                     </label>
                   );
                 })}
               </div>
-
-              {selectedAccess.length === 0 && (
-                <p className="text-xs text-destructive font-medium">
-                  * Please tick at least one function to grant access.
-                </p>
-              )}
             </div>
 
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit">Send Invite</Button>
+              <Button type="submit">Send Invite & Create Credentials</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -825,3 +839,5 @@ export function EmployeeListPage() {
     </div>
   );
 }
+
+export default EmployeeListPage;

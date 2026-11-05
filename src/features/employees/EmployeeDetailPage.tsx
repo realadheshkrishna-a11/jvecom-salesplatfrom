@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/toast';
 import { ArrowLeft, Mail, Phone, Calendar, Trash2, User, ShieldCheck } from 'lucide-react';
-import { SIDE_PANEL_FUNCTIONS } from '@/features/employees/EmployeeListPage';
+import { MODULES } from '@/lib/permissions';
 
 export function EmployeeDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -51,13 +51,13 @@ export function EmployeeDetailPage() {
     try {
       setIsDeleting(true);
       await employeesService.delete(employee.id);
-      success('Employee Deleted', `${employee.first_name} ${employee.last_name} has been removed.`);
-      setDeleteDialogOpen(false);
+      success('Employee Removed', `${employee.first_name} ${employee.last_name} has been deleted.`);
       navigate('/employees');
-    } catch (err: unknown) {
-      toastError('Failed to delete employee', err instanceof Error ? err.message : 'Please try again');
+    } catch (err) {
+      toastError('Delete Failed', err instanceof Error ? err.message : 'Could not remove employee');
     } finally {
       setIsDeleting(false);
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -68,131 +68,132 @@ export function EmployeeDetailPage() {
   if (!employee) {
     return (
       <div className="space-y-4">
-        <Button variant="ghost" size="sm" asChild className="p-0 h-auto gap-1 text-primary">
-          <Link to="/employees">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/employees" className="gap-2">
             <ArrowLeft className="w-4 h-4" /> Back to Directory
           </Link>
         </Button>
-        <Card className="p-8 text-center">
-          <p className="text-muted-foreground">Employee profile not found.</p>
+        <Card className="p-8 text-center text-muted-foreground">
+          Employee profile not found or has been removed.
         </Card>
       </div>
     );
   }
 
-  // Format joined date as YYYY-MM-DD
-  const joinedDate = employee.joining_date
-    ? employee.joining_date
-    : employee.created_at
-      ? employee.created_at.split('T')[0]
-      : '2026-11-04';
-
-  const roleFormatted = employee.role ? String(employee.role).replace(/_/g, ' ') : 'Sales Rep';
-  const teamFormatted = (employee.team as any)?.name || 'General Sales';
+  const roleFormatted = (employee.role || 'Sales Rep').replace(/_/g, ' ');
+  const teamFormatted = (employee.team as any)?.name || 'Unassigned Team';
 
   return (
     <div className="space-y-6 max-w-4xl">
-      {/* Navigation Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Button variant="ghost" size="sm" asChild className="p-0 h-auto gap-1.5 text-primary hover:text-primary/80">
-          <Link to="/employees">
-            <ArrowLeft className="w-4 h-4" /> Back to Directory
+      {/* Top back bar & Action */}
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/employees" className="gap-2 text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="w-4 h-4" /> Back to Employee Directory
           </Link>
+        </Button>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-destructive hover:bg-destructive/10 hover:border-destructive/40 gap-1.5"
+          onClick={() => setDeleteDialogOpen(true)}
+        >
+          <Trash2 className="w-3.5 h-3.5" /> Delete Employee
         </Button>
       </div>
 
-      {/* Employee Profile Card */}
-      <Card className="border-border/60 shadow-sm">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
-            <div className="flex items-start gap-4">
-              {/* Initials Avatar */}
-              <div className="w-16 h-16 shrink-0 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                {(employee.first_name?.[0] || 'E').toUpperCase()}
-                {(employee.last_name?.[0] || '').toUpperCase()}
+      {/* Main Profile Header Card */}
+      <Card className="border-border/60 overflow-hidden">
+        <div className="h-28 bg-gradient-to-r from-blue-600 via-indigo-600 to-primary/80" />
+        <CardContent className="p-6 relative pt-0">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-12 mb-6">
+            <div className="flex items-end gap-4">
+              <div className="w-24 h-24 rounded-2xl bg-card border-4 border-card shadow-lg flex items-center justify-center text-primary font-bold text-3xl">
+                {employee.first_name[0]}{employee.last_name[0]}
               </div>
-
-              {/* Info Details */}
-              <div className="space-y-1">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h2 className="text-xl font-bold text-foreground">
+              <div className="space-y-1 mb-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-2xl font-bold text-foreground">
                     {employee.first_name} {employee.last_name}
-                  </h2>
-                  <Badge variant="success" className="text-[10px] font-semibold tracking-wide">
+                  </h1>
+                  <Badge variant={employee.status === 'ACTIVE' ? 'success' : 'warning'} className="text-[10px]">
                     {employee.status || 'ACTIVE'}
                   </Badge>
                 </div>
+                <p className="text-xs text-muted-foreground font-mono">
+                  User ID: {employee.employee_id || 'N/A'} {employee.username && `• @${employee.username}`}
+                </p>
+              </div>
+            </div>
+          </div>
 
-                {/* Role and Team: MANAGER • General Sales */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                    {roleFormatted} • {teamFormatted}
-                  </p>
-                  {employee.access_only && employee.access_only !== 'ALL' && (
-                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                      <span className="text-xs font-semibold text-muted-foreground">Allowed Access:</span>
-                      {employee.access_only.split(',').map((mod) => {
-                        const trimmed = mod.trim().toLowerCase();
-                        const found = SIDE_PANEL_FUNCTIONS.find(f => f.id === trimmed);
-                        const label = found ? found.label : trimmed;
-                        return (
-                          <Badge
-                            key={trimmed}
-                            variant="secondary"
-                            className="text-[10px] font-medium bg-primary/10 text-primary border border-primary/20"
-                          >
-                            {label}
-                          </Badge>
-                        );
-                      })}
-                    </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border/60">
+            {/* Left: Role, Access & Team */}
+            <div className="space-y-3">
+              <div>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Role & Organization
+                </span>
+                <p className="text-sm font-semibold text-foreground mt-0.5">
+                  {roleFormatted}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Team: <span className="font-medium text-foreground">{teamFormatted}</span>
+                </p>
+              </div>
+
+              <div>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Assigned Workspace Access
+                </span>
+                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                  {!employee.access_only || employee.access_only === 'ALL' ? (
+                    <Badge variant="outline" className="text-xs text-primary border-primary/30">
+                      Full Workspace Access (All Modules)
+                    </Badge>
+                  ) : (
+                    employee.access_only.split(',').map((mod) => {
+                      const trimmed = mod.trim().toLowerCase();
+                      const found = MODULES.find(f => f.id === trimmed);
+                      const label = found ? found.label : trimmed;
+                      return (
+                        <Badge
+                          key={trimmed}
+                          variant="secondary"
+                          className="text-[10px] font-medium bg-primary/10 text-primary border border-primary/20"
+                        >
+                          {label}
+                        </Badge>
+                      );
+                    })
                   )}
-                </div>
-
-                {/* User ID and Username */}
-                {(employee.employee_id || employee.username) && (
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground pt-0.5">
-                    {employee.employee_id && (
-                      <span className="font-mono bg-muted/60 px-2 py-0.5 rounded border border-border/40">
-                        ID: {employee.employee_id}
-                      </span>
-                    )}
-                    {employee.username && (
-                      <span className="text-muted-foreground">
-                        @{employee.username}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {/* Email, Phone & Joined Date */}
-                <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground pt-2">
-                  <span className="flex items-center gap-1.5 text-foreground/80 font-medium">
-                    <Mail className="w-3.5 h-3.5 text-muted-foreground" /> {employee.email}
-                  </span>
-                  {employee.phone && (
-                    <span className="flex items-center gap-1.5">
-                      <Phone className="w-3.5 h-3.5" /> {employee.phone}
-                    </span>
-                  )}
-                  <span className="flex items-center gap-1.5 text-muted-foreground">
-                    <Calendar className="w-3.5 h-3.5" /> Joined {joinedDate}
-                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Actions: Delete Employee */}
-            <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive gap-1.5 shadow-sm"
-                onClick={() => setDeleteDialogOpen(true)}
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete Employee
-              </Button>
+            {/* Right: Contact & System Metadata */}
+            <div className="space-y-2.5 text-sm">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Contact & Details
+              </span>
+
+              <div className="flex items-center gap-2 text-foreground text-xs">
+                <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <span className="truncate">{employee.email}</span>
+              </div>
+
+              {employee.phone && (
+                <div className="flex items-center gap-2 text-foreground text-xs">
+                  <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <span>{employee.phone}</span>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 text-foreground text-xs">
+                <Calendar className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <span>Joined on {employee.joining_date ? new Date(employee.joining_date).toLocaleDateString() : 'N/A'}</span>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -202,32 +203,17 @@ export function EmployeeDetailPage() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-destructive flex items-center gap-2">
-              <Trash2 className="w-5 h-5" />
-              Delete Employee Profile
-            </DialogTitle>
-            <DialogDescription className="pt-2">
-              Are you sure you want to delete <strong>{employee.first_name} {employee.last_name}</strong>?
-              This will permanently remove their profile and credentials from the platform.
+            <DialogTitle>Confirm Employee Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently remove {employee.first_name} {employee.last_name} from the directory?
+              This will revoke their CRM access immediately.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="pt-4 gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}
-              disabled={isDeleting}
-            >
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
               Cancel
             </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="gap-1.5"
-            >
-              <Trash2 className="w-4 h-4" />
+            <Button variant="destructive" disabled={isDeleting} onClick={handleDelete}>
               {isDeleting ? 'Deleting...' : 'Delete Employee'}
             </Button>
           </DialogFooter>
@@ -236,3 +222,5 @@ export function EmployeeDetailPage() {
     </div>
   );
 }
+
+export default EmployeeDetailPage;
