@@ -38,13 +38,15 @@ export function LoginPage() {
 
   const queryParams = new URLSearchParams(location.search);
   const emailParam = queryParams.get('email');
+  const tempPwdParam = queryParams.get('temp_pwd') || queryParams.get('pwd') || queryParams.get('password');
   const isInvitedFlow = Boolean(emailParam);
 
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(Boolean(tempPwdParam));
   const [submitting, setSubmitting] = useState(false);
   const [activeRoleLoading, setActiveRoleLoading] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [rememberMe, setRememberMe] = useState(true);
+  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard';
 
@@ -52,7 +54,7 @@ export function LoginPage() {
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: emailParam || (typeof localStorage !== 'undefined' ? localStorage.getItem('salesos_remembered_email') || 'admin@jvecom.in' : 'admin@jvecom.in'),
-      password: '',
+      password: tempPwdParam || '',
     },
   });
 
@@ -60,7 +62,33 @@ export function LoginPage() {
     if (emailParam) {
       form.setValue('email', emailParam, { shouldValidate: true });
     }
-  }, [emailParam, form]);
+    if (tempPwdParam) {
+      form.setValue('password', tempPwdParam, { shouldValidate: true });
+    }
+  }, [emailParam, tempPwdParam, form]);
+
+  // Automatic one-click entry when arriving from invitation email link
+  useEffect(() => {
+    if (emailParam && tempPwdParam && !user && initialized && !submitting && !autoLoginAttempted) {
+      setAutoLoginAttempted(true);
+      const timer = setTimeout(async () => {
+        setSubmitting(true);
+        setErrorMessage(null);
+        const { error } = await signIn(emailParam, tempPwdParam);
+        setSubmitting(false);
+
+        if (error) {
+          setErrorMessage(error.message);
+          toastError('Invitation Login Notice', error.message);
+        } else {
+          toastSuccess('Welcome to SalesOS!', 'Signed in successfully with your invited account.');
+          navigate(from, { replace: true });
+        }
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [emailParam, tempPwdParam, user, initialized, submitting, autoLoginAttempted, signIn, navigate, from, toastSuccess, toastError]);
 
   // If already authenticated, redirect immediately
   if (user && initialized) {
@@ -158,22 +186,22 @@ export function LoginPage() {
               <span>Next-Gen Sales Execution & CRM Platform</span>
             </div>
             <h1 className="text-3xl xl:text-4xl font-extrabold tracking-tight text-white leading-tight">
-              Empower your sales force with real-time speed & precision.
+              One unified OS for leads, quotas, B2B wholesale orders & team commissions.
             </h1>
-            <p className="text-slate-300 text-sm leading-relaxed">
-              Unified workspace for enterprise sales reps, managers, and executives: pipeline Kanban, automated commission structures, quota tracking, and ERP integration.
+            <p className="text-sm text-slate-300 leading-relaxed">
+              Empower every sales representative with customized role-based access, instant pipeline tracking, and automated performance gamification.
             </p>
           </div>
 
           {/* Feature Highlights Grid */}
-          <div className="space-y-3.5 text-sm">
+          <div className="space-y-3 text-sm">
             <div className="flex items-start gap-3 rounded-xl bg-white/5 p-3 border border-white/10 backdrop-blur-sm">
               <div className="p-2 rounded-lg bg-blue-500/20 text-blue-400 mt-0.5">
                 <Zap className="w-4 h-4" />
               </div>
               <div>
-                <p className="font-medium text-white">Visual Lead Pipeline & Fast Ordering</p>
-                <p className="text-xs text-slate-400">Drag & drop Kanban stages with instant B2B quotation generation.</p>
+                <p className="font-medium text-white">Dynamic Role-Based Access Control</p>
+                <p className="text-xs text-slate-400">Every invited employee receives their personalized dashboard with assigned permissions.</p>
               </div>
             </div>
 
@@ -203,7 +231,7 @@ export function LoginPage() {
         <div className="relative z-10 pt-6 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>Supabase Cloud Auth & Local Resilience Engine</span>
+            <span>Supabase Cloud Auth & RBAC Engine</span>
           </div>
           <span>v1.0.0 Production</span>
         </div>
@@ -238,7 +266,7 @@ export function LoginPage() {
               </div>
               <CardDescription>
                 {isInvitedFlow
-                  ? 'Welcome to the team! Enter your invited credentials below.'
+                  ? 'Welcome to the team! Your invited credentials are ready.'
                   : 'Enter your credentials to access your CRM workspace.'}
               </CardDescription>
             </CardHeader>
@@ -248,8 +276,21 @@ export function LoginPage() {
               {isInvitedFlow && (
                 <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/25 text-blue-600 dark:text-blue-400 text-xs flex items-start gap-2.5 animate-in fade-in duration-200">
                   <Sparkles className="w-4 h-4 mt-0.5 shrink-0" />
-                  <div className="leading-relaxed">
-                    <strong>Welcome to SalesOS!</strong> Your account is activated. Enter the temporary password provided in your invitation email to access your assigned modules.
+                  <div className="space-y-1">
+                    <p className="font-semibold text-foreground">
+                      Welcome to SalesOS! Account Credentials Active
+                    </p>
+                    <p className="text-muted-foreground leading-relaxed">
+                      {tempPwdParam
+                        ? <>Your work email <strong className="text-foreground">{emailParam}</strong> and password have been pre-filled from your invitation email.</>
+                        : <>Your work email <strong className="text-foreground">{emailParam}</strong> is set. Enter your temporary password from your invitation email to sign in.</>}
+                    </p>
+                    {submitting && (
+                      <div className="flex items-center gap-2 pt-1 font-medium text-blue-600 dark:text-blue-300">
+                        <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        <span>Signing you into your assigned workspace...</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -558,7 +599,7 @@ export function LoginPage() {
                 >
                   Accept invitation token
                 </Link>
-                <span className="text-[11px] opacity-70">SalesOS Cloud & Local</span>
+                <span className="text-[11px] opacity-70">SalesOS Cloud Auth</span>
               </div>
             </CardFooter>
           </Card>
@@ -573,4 +614,5 @@ export function LoginPage() {
     </div>
   );
 }
+
 export default LoginPage;

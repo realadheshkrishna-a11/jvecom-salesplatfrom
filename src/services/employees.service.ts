@@ -2,10 +2,11 @@
 // SalesOS — Employees Service
 // ============================================================================
 
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { localDb, isLocalStorageMode, generateUUID } from '@/lib/localDb';
 import { saveLocalCredential, removeLocalCredential } from '@/lib/localCredentials';
-import type { Profile, Team, Organization, EmployeeInvitation, PaginatedResponse } from '@/types';
+import type { Profile, Team, Organization, PaginatedResponse } from '@/types';
 import { UserRole, EmployeeStatus } from '@/types';
 import type { EmployeeInput } from '@/schemas';
 
@@ -120,16 +121,25 @@ export const employeesService = {
     return data as unknown as Profile;
   },
 
+  /**
+   * Invites and creates an employee account with real authentication.
+   * Creates the user in Supabase Cloud Auth (usable across any remote device/browser)
+   * and stores their assigned RBAC module permissions in Supabase profiles.
+   */
   async invite(orgId: string, input: EmployeeInput): Promise<{ invitation_id: string }> {
     let newId = generateUUID();
+    const normalizedEmail = input.email.trim().toLowerCase();
 
-    // 1. If remote Supabase is configured, try invoking the invite-employee edge function
+    // 1. If remote Supabase is configured, create cloud user
     if (!isLocalStorageMode()) {
+      let edgeSuccess = false;
+
+      // 1A. Attempt via edge function first (if deployed with service-role permissions)
       try {
         const { data, error } = await supabase.functions.invoke('invite-employee', {
           body: {
             organization_id: orgId,
-            email: input.email,
+            email: normalizedEmail,
             password: input.password,
             first_name: input.first_name,
             last_name: input.last_name,
@@ -144,23 +154,93 @@ export const employeesService = {
         });
         if (!error && data?.profile_id) {
           newId = data.profile_id;
-        } else {
-          await supabase
-            .from('employee_invitations')
-            .insert({
-              organization_id: orgId,
-              email: input.email,
-              first_name: input.first_name,
-              last_name: input.last_name,
-              role: input.role,
-              team_id: input.team_id || null,
-              manager_id: input.manager_id || null,
-              phone: input.phone || null,
-              employee_id_str: input.employee_id || null,
-            });
+          edgeSuccess = true;
         }
       } catch (err) {
-        console.warn('[employeesService] Remote invitation sync notice:', err);
+        console.warn('[employeesService] Edge function invoke notice:', err);
+      }
+
+      // 1B. Fallback: Direct cloud Auth registration via an unpersisted Supabase client
+      if (!edgeSuccess) {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+        if (supabaseUrl && supabaseAnonKey) {
+          try {
+            // Secondary client with persistSession: false guarantees current admin session is completely untouched
+            const cloudAuthClient = createClient(supabaseUrl, supabaseAnonKey, {
+              auth: {
+                persistSession: false,
+                autoRefreshToken: false,
+                detectSessionInUrl: false,
+              },
+            });
+
+            const { data: signUpData, error: signUpErr } = await cloudAuthClient.auth.signUp({
+              email: normalizedEmail,
+              password: input.password,
+              options: {
+                data: {
+                  organization_id: orgId,
+                  first_name: input.first_name,
+                  last_name: input.last_name,
+                  role: input.role,
+                },
+              },
+            });
+
+            if (signUpData?.user?.id) {
+              newId = signUpData.user.id;
+            } else if (signUpErr) {
+              console.warn('[employeesService] Cloud signup notice:', signUpErr.message);
+            }
+          } catch (authErr) {
+            console.warn('[employeesService] Cloud signup client error:', authErr);
+          }
+        }
+
+        // Upsert the employee profile with RBAC permissions in Supabase
+        try {
+          await supabase.from('profiles').upsert({
+            id: newId,
+            organization_id: orgId,
+            first_name: input.first_name,
+            last_name: input.last_name,
+            email: normalizedEmail,
+            phone: input.phone || null,
+            username: input.username || normalizedEmail.split('@')[0],
+            employee_id: input.employee_id || null,
+            role: input.role,
+            team_id: input.team_id || null,
+            manager_id: input.manager_id || null,
+            joining_date: new Date().toISOString().slice(0, 10),
+            status: 'ACTIVE',
+            access_only: input.access_only || 'ALL',
+            updated_at: new Date().toISOString(),
+          });
+        } catch (profErr) {
+          console.warn('[employeesService] Remote profile upsert notice:', profErr);
+        }
+
+        // Insert invitation log in Supabase
+        try {
+          await supabase.from('employee_invitations').insert({
+            organization_id: orgId,
+            email: normalizedEmail,
+            first_name: input.first_name,
+            last_name: input.last_name,
+            role: input.role,
+            team_id: input.team_id || null,
+            manager_id: input.manager_id || null,
+            phone: input.phone || null,
+            employee_id_str: input.employee_id || null,
+            access_only: input.access_only || 'ALL',
+            status: 'ACCEPTED',
+            user_id: newId,
+          });
+        } catch (invErr) {
+          console.warn('[employeesService] Remote invitation log notice:', invErr);
+        }
       }
     }
 
@@ -169,9 +249,9 @@ export const employeesService = {
       organization_id: orgId,
       first_name: input.first_name,
       last_name: input.last_name,
-      email: input.email,
+      email: normalizedEmail,
       phone: input.phone || null,
-      username: input.username || input.email.split('@')[0],
+      username: input.username || normalizedEmail.split('@')[0],
       employee_id: input.employee_id || `EMP-${Date.now().toString().slice(-4)}`,
       role: (input.role as UserRole) || UserRole.SALES_REP,
       team_id: input.team_id || null,
@@ -184,12 +264,12 @@ export const employeesService = {
       updated_at: new Date().toISOString(),
     };
 
-    // Always persist to local database first
+    // Always persist to local database as well
     localDb.insert<Profile>('profiles', newProfile);
 
-    // Save local credential so the employee can log in immediately
+    // Save local credential for fallback
     if (input.password) {
-      await saveLocalCredential(newId, input.email, input.password);
+      await saveLocalCredential(newId, normalizedEmail, input.password);
     }
 
     return { invitation_id: newId };

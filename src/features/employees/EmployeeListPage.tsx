@@ -21,10 +21,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
-import { Search, Mail, UserPlus, RefreshCw, Copy, Eye, EyeOff, Check, Trash2, ShieldCheck, Lock } from 'lucide-react';
+import { Search, Mail, UserPlus, RefreshCw, Copy, Eye, EyeOff, Check, Trash2, ShieldCheck, Lock, Globe } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { employeeSchema, type EmployeeInput } from '@/schemas';
+
+/**
+ * Resolves the real, accessible production web address of the application.
+ * Never defaults to localhost if a production URL or live domain is available.
+ */
+export function resolveAppUrl(): string {
+  const envUrl = (import.meta.env.VITE_APP_URL || '').trim();
+  if (envUrl) {
+    return envUrl.replace(/\/+$/, '');
+  }
+  if (typeof window !== 'undefined' && window.location.origin) {
+    const origin = window.location.origin;
+    if (!origin.includes('localhost') && !origin.includes('127.0.0.1')) {
+      return origin.replace(/\/+$/, '');
+    }
+  }
+  return 'https://crm.jvecomb2b.com';
+}
 
 function buildInvitationEmail({
   firstName,
@@ -36,6 +54,7 @@ function buildInvitationEmail({
   role,
   accessOnly,
   orgName,
+  baseUrl,
 }: {
   firstName: string;
   lastName: string;
@@ -46,9 +65,12 @@ function buildInvitationEmail({
   role: string;
   accessOnly?: string;
   orgName: string;
+  baseUrl?: string;
 }) {
   const roleName = String(role).replace(/_/g, ' ');
-  const loginUrl = `${window.location.origin}/login?email=${encodeURIComponent(email)}`;
+  const appBase = (baseUrl || resolveAppUrl()).replace(/\/+$/, '');
+  // Link directly to the real web app login page with credentials attached
+  const loginUrl = `${appBase}/login?email=${encodeURIComponent(email)}&temp_pwd=${encodeURIComponent(password)}`;
 
   const html = `<!DOCTYPE html>
 <html>
@@ -115,7 +137,7 @@ function buildInvitationEmail({
         </div>
 
         <p style="font-size:13px;line-height:1.5;color:#64748b;margin:20px 0 10px;text-align:center;">
-          Button not clickable? Copy and paste this link in your browser:<br/>
+          Button not clickable? Copy and paste this link into your browser:<br/>
           <a href="${loginUrl}" style="color:#2563eb;word-break:break-all;font-size:12px;">${loginUrl}</a>
         </p>
 
@@ -196,6 +218,7 @@ export function EmployeeListPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [appUrlOverride, setAppUrlOverride] = useState(resolveAppUrl());
   const [selectedAccess, setSelectedAccess] = useState<string[]>(
     ROLE_DEFAULT_MODULES[UserRole.SALES_REP]
   );
@@ -283,7 +306,7 @@ export function EmployeeListPage() {
     try {
       const accessOnly = serializeAccess(selectedAccess);
 
-      // 1. Create the employee profile record with permissions
+      // 1. Create the employee profile record with permissions in Supabase Cloud
       await employeesService.create(orgId, {
         ...values,
         access_only: accessOnly,
@@ -308,6 +331,7 @@ export function EmployeeListPage() {
         role: values.role,
         accessOnly: accessLabel,
         orgName,
+        baseUrl: appUrlOverride,
       });
 
       const emailSubject = `Welcome to ${orgName} — Your Account Credentials`;
@@ -392,6 +416,7 @@ export function EmployeeListPage() {
       const defaultRole = UserRole.SALES_REP;
       const defaults = ROLE_DEFAULT_MODULES[defaultRole] || MODULES.map(m => m.id);
       setSelectedAccess(defaults);
+      setAppUrlOverride(resolveAppUrl());
       form.reset({
         first_name: '',
         last_name: '',
@@ -713,6 +738,30 @@ export function EmployeeListPage() {
               {form.formState.errors.password && (
                 <p className="text-xs text-destructive">{form.formState.errors.password.message}</p>
               )}
+            </div>
+
+            {/* Platform Web Address (App URL for Email Invitation Link) */}
+            <div className="space-y-1.5 p-3 rounded-lg bg-blue-50/50 dark:bg-blue-950/20 border border-blue-500/20 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-foreground flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  Platform Web Address (Invitation Link Destination)
+                </span>
+                <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-300 border-blue-500/30">
+                  Live URL
+                </Badge>
+              </div>
+              <Input
+                value={appUrlOverride}
+                onChange={(e) => setAppUrlOverride(e.target.value)}
+                placeholder="https://crm.jvecomb2b.com"
+                className="h-8 text-xs font-mono bg-background"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Employee's "Access Your Account" button in their email will direct to:
+                <br />
+                <span className="font-mono text-foreground font-medium break-all">{appUrlOverride || 'https://crm.jvecomb2b.com'}/login</span>
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
