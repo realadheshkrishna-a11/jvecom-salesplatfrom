@@ -24,7 +24,7 @@ export function isLocalStorageMode(): boolean {
     if (forced === 'supabase') return false;
   } catch {}
 
-  const url = import.meta.env.VITE_SUPABASE_URL;
+  const url = import.meta.env.VITE_SUPABASE_URL || 'https://qkwxsiezhyarpcfnbjja.supabase.co';
   // If no Supabase URL is set or it's a placeholder, use localDb automatically
   if (!url || url.includes('placeholder') || url.includes('your-project-id')) {
     return true;

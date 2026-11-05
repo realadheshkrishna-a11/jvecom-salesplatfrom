@@ -132,115 +132,144 @@ export const employeesService = {
 
     // 1. If remote Supabase is configured, create cloud user
     if (!isLocalStorageMode()) {
-      let edgeSuccess = false;
+      let provisioned = false;
 
-      // 1A. Attempt via edge function first (if deployed with service-role permissions)
+      // 1A. Primary: Call create_employee_account RPC (directly provisions auth.users, identities, and profiles with confirmed email)
       try {
-        const { data, error } = await supabase.functions.invoke('invite-employee', {
-          body: {
-            organization_id: orgId,
-            email: normalizedEmail,
-            password: input.password,
-            first_name: input.first_name,
-            last_name: input.last_name,
-            username: input.username,
-            employee_id: input.employee_id,
-            role: input.role,
-            team_id: input.team_id || null,
-            manager_id: input.manager_id || null,
-            phone: input.phone || null,
-            access_only: input.access_only || 'ALL',
-          },
+        const { data: rpcData, error: rpcErr } = await supabase.rpc('create_employee_account', {
+          p_email: normalizedEmail,
+          p_password: input.password,
+          p_first_name: input.first_name || '',
+          p_last_name: input.last_name || '',
+          p_role: input.role || 'SALES_REP',
+          p_org_id: orgId,
+          p_access_only: input.access_only || 'ALL',
+          p_phone: input.phone || null,
+          p_employee_id: input.employee_id || null,
+          p_team_id: input.team_id || null,
+          p_manager_id: input.manager_id || null,
         });
-        if (!error && data?.profile_id) {
-          newId = data.profile_id;
-          edgeSuccess = true;
+
+        if (!rpcErr && rpcData?.user_id) {
+          newId = rpcData.user_id;
+          provisioned = true;
+          console.log('[employeesService] Cloud employee provisioned via RPC:', newId);
+        } else if (rpcErr) {
+          console.warn('[employeesService] RPC provision notice:', rpcErr);
         }
-      } catch (err) {
-        console.warn('[employeesService] Edge function invoke notice:', err);
+      } catch (rpcCatch) {
+        console.warn('[employeesService] RPC call exception:', rpcCatch);
       }
 
-      // 1B. Fallback: Direct cloud Auth registration via an unpersisted Supabase client
-      if (!edgeSuccess) {
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://qkwxsiezhyarpcfnbjja.supabase.co';
-        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrd3hzaWV6aHlhcnBjZm5iamphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1NTE2NjcsImV4cCI6MjEwODEyNzY2N30.BZiI_00l9WhA80IFTs0ovIxW5VZI3DhUGkpWIYGMzOc';
-
-        if (supabaseUrl && supabaseAnonKey) {
-          try {
-            // Secondary client with persistSession: false guarantees current admin session is completely untouched
-            const cloudAuthClient = createClient(supabaseUrl, supabaseAnonKey, {
-              auth: {
-                persistSession: false,
-                autoRefreshToken: false,
-                detectSessionInUrl: false,
-              },
-            });
-
-            const { data: signUpData, error: signUpErr } = await cloudAuthClient.auth.signUp({
+      // 1B. Fallback: Edge function or secondary client signUp
+      if (!provisioned) {
+        // Attempt edge function
+        try {
+          const { data, error } = await supabase.functions.invoke('invite-employee', {
+            body: {
+              organization_id: orgId,
               email: normalizedEmail,
               password: input.password,
-              options: {
-                data: {
-                  organization_id: orgId,
-                  first_name: input.first_name,
-                  last_name: input.last_name,
-                  role: input.role,
-                },
-              },
-            });
+              first_name: input.first_name,
+              last_name: input.last_name,
+              username: input.username,
+              employee_id: input.employee_id,
+              role: input.role,
+              team_id: input.team_id || null,
+              manager_id: input.manager_id || null,
+              phone: input.phone || null,
+              access_only: input.access_only || 'ALL',
+            },
+          });
+          if (!error && data?.profile_id) {
+            newId = data.profile_id;
+            provisioned = true;
+          }
+        } catch (err) {
+          console.warn('[employeesService] Edge function invoke notice:', err);
+        }
 
-            if (signUpData?.user?.id) {
-              newId = signUpData.user.id;
-            } else if (signUpErr) {
-              console.warn('[employeesService] Cloud signup notice:', signUpErr.message);
+        // Secondary client signUp fallback
+        if (!provisioned) {
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://qkwxsiezhyarpcfnbjja.supabase.co';
+          const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrd3hzaWV6aHlhcnBjZm5iamphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1NTE2NjcsImV4cCI6MjEwODEyNzY2N30.BZiI_00l9WhA80IFTs0ovIxW5VZI3DhUGkpWIYGMzOc';
+
+          if (supabaseUrl && supabaseAnonKey) {
+            try {
+              const cloudAuthClient = createClient(supabaseUrl, supabaseAnonKey, {
+                auth: {
+                  persistSession: false,
+                  autoRefreshToken: false,
+                  detectSessionInUrl: false,
+                },
+              });
+
+              const { data: signUpData, error: signUpErr } = await cloudAuthClient.auth.signUp({
+                email: normalizedEmail,
+                password: input.password,
+                options: {
+                  data: {
+                    organization_id: orgId,
+                    first_name: input.first_name,
+                    last_name: input.last_name,
+                    role: input.role,
+                  },
+                },
+              });
+
+              if (signUpData?.user?.id) {
+                newId = signUpData.user.id;
+              } else if (signUpErr) {
+                console.warn('[employeesService] Cloud signup notice:', signUpErr.message);
+              }
+            } catch (authErr) {
+              console.warn('[employeesService] Cloud signup client error:', authErr);
             }
-          } catch (authErr) {
-            console.warn('[employeesService] Cloud signup client error:', authErr);
+          }
+
+          // Upsert the employee profile with RBAC permissions in Supabase
+          try {
+            await supabase.from('profiles').upsert({
+              id: newId,
+              organization_id: orgId,
+              first_name: input.first_name,
+              last_name: input.last_name,
+              email: normalizedEmail,
+              phone: input.phone || null,
+              username: input.username || normalizedEmail.split('@')[0],
+              employee_id: input.employee_id || null,
+              role: input.role,
+              team_id: input.team_id || null,
+              manager_id: input.manager_id || null,
+              joining_date: new Date().toISOString().slice(0, 10),
+              status: 'ACTIVE',
+              access_only: input.access_only || 'ALL',
+              updated_at: new Date().toISOString(),
+            });
+          } catch (profErr) {
+            console.warn('[employeesService] Remote profile upsert notice:', profErr);
           }
         }
+      }
 
-        // Upsert the employee profile with RBAC permissions in Supabase
-        try {
-          await supabase.from('profiles').upsert({
-            id: newId,
-            organization_id: orgId,
-            first_name: input.first_name,
-            last_name: input.last_name,
-            email: normalizedEmail,
-            phone: input.phone || null,
-            username: input.username || normalizedEmail.split('@')[0],
-            employee_id: input.employee_id || null,
-            role: input.role,
-            team_id: input.team_id || null,
-            manager_id: input.manager_id || null,
-            joining_date: new Date().toISOString().slice(0, 10),
-            status: 'ACTIVE',
-            access_only: input.access_only || 'ALL',
-            updated_at: new Date().toISOString(),
-          });
-        } catch (profErr) {
-          console.warn('[employeesService] Remote profile upsert notice:', profErr);
-        }
-
-        // Insert invitation log in Supabase
-        try {
-          await supabase.from('employee_invitations').insert({
-            organization_id: orgId,
-            email: normalizedEmail,
-            first_name: input.first_name,
-            last_name: input.last_name,
-            role: input.role,
-            team_id: input.team_id || null,
-            manager_id: input.manager_id || null,
-            phone: input.phone || null,
-            employee_id_str: input.employee_id || null,
-            access_only: input.access_only || 'ALL',
-            status: 'ACCEPTED',
-            user_id: newId,
-          });
-        } catch (invErr) {
-          console.warn('[employeesService] Remote invitation log notice:', invErr);
-        }
+      // Always insert invitation log in Supabase
+      try {
+        await supabase.from('employee_invitations').insert({
+          organization_id: orgId,
+          email: normalizedEmail,
+          first_name: input.first_name,
+          last_name: input.last_name,
+          role: input.role,
+          team_id: input.team_id || null,
+          manager_id: input.manager_id || null,
+          phone: input.phone || null,
+          employee_id_str: input.employee_id || null,
+          access_only: input.access_only || 'ALL',
+          status: 'ACCEPTED',
+          user_id: newId,
+        });
+      } catch (invErr) {
+        console.warn('[employeesService] Remote invitation log notice:', invErr);
       }
     }
 
