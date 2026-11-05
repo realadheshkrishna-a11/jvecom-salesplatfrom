@@ -1,5 +1,5 @@
-import { Outlet, Navigate, useLocation, Link } from 'react-router-dom';
-import { ShieldAlert } from 'lucide-react';
+import { Outlet, Navigate, useLocation, Link, useNavigate } from 'react-router-dom';
+import { ShieldAlert, LogOut } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { moduleForPath, getHomePath } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,14 @@ export function ModuleGuard() {
 }
 
 export function AccessDenied({ moduleLabel }: { moduleLabel?: string }) {
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/login', { replace: true });
+  };
+
   return (
     <div className="flex items-center justify-center py-16">
       <Card className="max-w-md w-full border-border/70">
@@ -37,9 +45,20 @@ export function AccessDenied({ moduleLabel }: { moduleLabel?: string }) {
               {' '}Ask your organization admin if you need access.
             </p>
           </div>
-          <Button asChild>
-            <Link to={getHomePath()}>Go to my dashboard</Link>
-          </Button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
+            <Button asChild size="sm">
+              <Link to={getHomePath()}>Go to my dashboard</Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSignOut}
+              className="text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5 mr-1.5" />
+              Sign Out &amp; Switch Account
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -52,4 +71,3 @@ export function HomeRedirect() {
   if (!initialized) return null;
   return <Navigate to={user ? getHomePath() : '/login'} replace />;
 }
-

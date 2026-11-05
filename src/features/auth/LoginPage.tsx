@@ -28,10 +28,11 @@ import {
   AlertCircle,
   Building2,
   UserCheck,
+  LogOut,
 } from 'lucide-react';
 
 export function LoginPage() {
-  const { user, signIn, signInWithDemo, demoAccounts, demoEnabled, loading: authLoading, initialized } = useAuth();
+  const { user, signIn, signInWithDemo, signOut, demoAccounts, demoEnabled, loading: authLoading, initialized } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { error: toastError, success: toastSuccess } = useToast();
@@ -53,7 +54,7 @@ export function LoginPage() {
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: emailParam || (typeof localStorage !== 'undefined' ? localStorage.getItem('salesos_remembered_email') || 'admin@jvecom.in' : 'admin@jvecom.in'),
+      email: emailParam || (typeof localStorage !== 'undefined' ? localStorage.getItem('salesos_remembered_email') || 'realadheshkrishna@gmail.com' : 'realadheshkrishna@gmail.com'),
       password: tempPwdParam || '',
     },
   });
@@ -90,9 +91,51 @@ export function LoginPage() {
     }
   }, [emailParam, tempPwdParam, user, initialized, submitting, autoLoginAttempted, signIn, navigate, from, toastSuccess, toastError]);
 
-  // If already authenticated, redirect immediately
+  // If already authenticated and user visits /login, show an account switcher card with instant Sign Out option
   if (user && initialized) {
-    return <Navigate to={from} replace />;
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-background p-4 antialiased">
+        <Card className="max-w-md w-full border-border/70 shadow-2xl p-6 sm:p-8 space-y-5 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-blue-500/10 text-blue-600 mx-auto flex items-center justify-center border border-blue-500/20 shadow-xs">
+            <UserCheck className="w-7 h-7" />
+          </div>
+
+          <div className="space-y-1.5">
+            <CardTitle className="text-xl font-bold tracking-tight">Currently Signed In</CardTitle>
+            <CardDescription className="text-xs">
+              Active account: <strong className="text-foreground font-mono">{user.email}</strong>
+            </CardDescription>
+          </div>
+
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            You are currently logged into SalesOS. To switch accounts or sign in with your Supabase credentials (<span className="text-foreground font-semibold">realadheshkrishna@gmail.com</span>), click <strong>Sign Out</strong> below.
+          </p>
+
+          <div className="flex flex-col gap-2.5 pt-2">
+            <Button
+              variant="default"
+              onClick={() => navigate('/dashboard')}
+              className="w-full h-10 font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20"
+            >
+              Continue to Workspace
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={async () => {
+                await signOut();
+                navigate('/login', { replace: true });
+              }}
+              className="w-full h-10 font-semibold text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out &amp; Login with Different Account
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   const handleCredentialsSubmit = async (values: LoginInput) => {
@@ -326,9 +369,9 @@ export function LoginPage() {
                           <Input
                             id="email"
                             type="email"
-                            placeholder="employee@jvecom.in"
+                            placeholder="realadheshkrishna@gmail.com"
                             autoComplete="email"
-                            className="pl-9 h-10 text-sm"
+                            className="pl-9 h-10 text-sm font-medium"
                             {...form.register('email')}
                           />
                         </div>
@@ -355,7 +398,7 @@ export function LoginPage() {
                           <Input
                             id="password"
                             type={showPassword ? 'text' : 'password'}
-                            placeholder="••••••••"
+                            placeholder="Enter password set in Supabase"
                             autoComplete="current-password"
                             className="pl-9 pr-9 h-10 text-sm"
                             {...form.register('password')}
@@ -411,17 +454,18 @@ export function LoginPage() {
                     {/* Quick autofill helper chips */}
                     <div className="pt-2">
                       <p className="text-[11px] font-medium text-muted-foreground mb-2 text-center">
-                        Quick demo autofill:
+                        Quick autofill:
                       </p>
                       <div className="grid grid-cols-3 gap-2">
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => handleFillCredentials('admin@jvecom.in', 'Admin@123')}
-                          className="text-xs h-8 px-2 border-border/80 hover:bg-muted/60"
+                          onClick={() => handleFillCredentials('realadheshkrishna@gmail.com', '')}
+                          className="text-xs h-8 px-2 border-blue-500/40 text-blue-600 dark:text-blue-400 hover:bg-blue-50/50 font-semibold truncate"
+                          title="realadheshkrishna@gmail.com"
                         >
-                          Org Admin
+                          Adhesh (Admin)
                         </Button>
                         <Button
                           type="button"
@@ -510,9 +554,9 @@ export function LoginPage() {
                       <Input
                         id="email"
                         type="email"
-                        placeholder="employee@jvecom.in"
+                        placeholder="realadheshkrishna@gmail.com"
                         autoComplete="email"
-                        className="pl-9 h-10 text-sm"
+                        className="pl-9 h-10 text-sm font-medium"
                         {...form.register('email')}
                       />
                     </div>
@@ -538,7 +582,7 @@ export function LoginPage() {
                       <Input
                         id="password"
                         type={showPassword ? 'text' : 'password'}
-                        placeholder="••••••••"
+                        placeholder="Enter password set in Supabase"
                         autoComplete="current-password"
                         className="pl-9 pr-9 h-10 text-sm"
                         {...form.register('password')}

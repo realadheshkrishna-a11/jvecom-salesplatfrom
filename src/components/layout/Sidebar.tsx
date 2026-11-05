@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -10,7 +10,7 @@ import {
   FileText, Bell, Shield, Settings, Building2,
   Briefcase, TrendingUp, ChevronLeft, Menu,
   Handshake, UserCog, Mail, Inbox, Send, FileEdit, Trash2,
-  ChevronDown, ChevronRight, Truck,
+  ChevronDown, ChevronRight, Truck, LogOut,
 } from 'lucide-react';
 import { emailService } from '@/services/email.service';
 import { useState as useStateLocal, useEffect as useEffectLocal } from 'react';
@@ -57,7 +57,16 @@ const superAdminItems: NavItem[] = [
 ];
 
 export function Sidebar() {
-  const { profile, organization, canAccessPath } = useAuth();
+  const { profile, organization, canAccessPath, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } finally {
+      navigate('/login', { replace: true });
+    }
+  };
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -250,8 +259,8 @@ export function Sidebar() {
         </nav>
       </ScrollArea>
 
-      {/* User profile */}
-      <div className="border-t border-sidebar-border/70 p-4">
+      {/* User profile & Direct Sign Out */}
+      <div className="border-t border-sidebar-border/70 p-3 space-y-2">
         <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
           <Avatar className="h-8 w-8 shrink-0">
             <AvatarImage src={profile?.avatar_url || undefined} />
@@ -260,16 +269,29 @@ export function Sidebar() {
             </AvatarFallback>
           </Avatar>
           {!collapsed && (
-            <div className="flex flex-col min-w-0 animate-fade-in">
-              <span className="text-sm font-medium truncate">
+            <div className="flex flex-col min-w-0 animate-fade-in flex-1">
+              <span className="text-sm font-medium truncate text-foreground">
                 {profile ? `${profile.first_name} ${profile.last_name}` : 'SalesOS'}
               </span>
-              <span className="text-[10px] text-sidebar-foreground/60 truncate capitalize">
+              <span className="text-[10px] text-muted-foreground truncate capitalize">
                 {profile ? String(profile.role).replace(/_/g, ' ').toLowerCase() : 'workspace'}
               </span>
             </div>
           )}
         </div>
+
+        {/* Direct Sign Out Button */}
+        <button
+          onClick={handleSignOut}
+          title="Sign out of platform"
+          className={cn(
+            "w-full flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 transition-colors border border-transparent hover:border-rose-500/20 cursor-pointer",
+            collapsed && "justify-center px-0"
+          )}
+        >
+          <LogOut className="h-3.5 w-3.5 shrink-0" />
+          {!collapsed && <span>Sign Out</span>}
+        </button>
       </div>
     </div>
   );
@@ -307,3 +329,4 @@ export function Sidebar() {
     </>
   );
 }
+export default Sidebar;
