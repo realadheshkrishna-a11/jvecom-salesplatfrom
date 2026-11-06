@@ -81,6 +81,19 @@ class LocalDatabase {
   public init() {
     if (typeof window !== 'undefined') {
       this.initialized = true;
+      try {
+        const raw = localStorage.getItem('salesos_profiles');
+        if (raw) {
+          const profiles = JSON.parse(raw);
+          const filtered = profiles.filter((p: any) => {
+            const email = p.email?.toLowerCase();
+            return email !== 'manager@jvecom.in' && email !== 'rep@jvecom.in' && email !== 'admin@jvecom.in' && p.employee_id !== 'MGR001' && p.employee_id !== 'REP001';
+          });
+          if (filtered.length !== profiles.length) {
+            localStorage.setItem('salesos_profiles', JSON.stringify(filtered));
+          }
+        }
+      } catch {}
     }
   }
 
@@ -88,11 +101,16 @@ class LocalDatabase {
   public getAll<T>(collectionKey: string): T[] {
     const list = getCollection<T>(collectionKey);
     if (collectionKey === 'profiles') {
-      return (list as any[]).map(p => ({
-        ...p,
-        role: p.role || UserRole.SALES_REP,
-        status: p.status || EmployeeStatus.ACTIVE,
-      })) as T[];
+      return (list as any[])
+        .filter(p => {
+          const email = p.email?.toLowerCase();
+          return email !== 'manager@jvecom.in' && email !== 'rep@jvecom.in' && email !== 'admin@jvecom.in' && p.employee_id !== 'MGR001' && p.employee_id !== 'REP001';
+        })
+        .map(p => ({
+          ...p,
+          role: p.role || UserRole.SALES_REP,
+          status: p.status || EmployeeStatus.ACTIVE,
+        })) as T[];
     }
     return list;
   }

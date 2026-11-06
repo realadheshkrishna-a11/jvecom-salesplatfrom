@@ -23,102 +23,246 @@ interface EmployeeFilters {
 
 export const employeesService = {
   async list(orgId: string, filters: EmployeeFilters = {}): Promise<PaginatedResponse<Profile>> {
-    if (isLocalStorageMode()) {
-      let list = localDb.getAll<Profile>('profiles').filter(p => p.organization_id === orgId);
-      const teams = localDb.getAll<Team>('teams');
-      const profiles = localDb.getAll<Profile>('profiles');
-
-      // Sanitize and attach relations
-      list = list.map(p => ({
-        ...p,
-        role: p.role || UserRole.SALES_REP,
-        status: p.status || EmployeeStatus.ACTIVE,
-        team: teams.find(t => t.id === p.team_id),
-        manager: profiles.find(m => m.id === p.manager_id),
-      }));
-
-      if (filters.search) {
-        const s = filters.search.toLowerCase();
-        list = list.filter(p =>
-          `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase().includes(s) ||
-          (p.email || '').toLowerCase().includes(s) ||
-          (p.employee_id || '').toLowerCase().includes(s)
-        );
-      }
-      if (filters.role && filters.role !== 'ALL') list = list.filter(p => p.role === filters.role);
-      if (filters.team_id) list = list.filter(p => p.team_id === filters.team_id);
-      if (filters.status) list = list.filter(p => p.status === filters.status);
-
-      return {
-        data: list,
-        total: list.length,
-        page: filters.page || 1,
-        pageSize: filters.pageSize || 25,
-        totalPages: 1,
-      };
-    }
-
     const {
       search, role, team_id, status,
       page = 1, pageSize = 25,
       sortBy = 'created_at', sortDir = 'desc'
     } = filters;
 
-    let query = supabase
-      .from('profiles')
-      .select('*, team:teams(id, name), manager:profiles!profiles_manager_id_fkey(id, first_name, last_name)', { count: 'exact' })
-      .eq('organization_id', orgId)
-      .neq('role', 'SUPER_ADMIN');
+    // Collect all profiles across Supabase, employee invitations, and local storage
+    const profileMap = new Map<string, Profile>();
 
-    if (search) {
-      query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%,employee_id.ilike.%${search}%,phone.ilike.%${search}%`);
+    // 1. Fetch remote Supabase profiles if not forced local
+    if (!isLocalStorageMode()) {
+      const normalizeProfile = (p: any): Profile | null => {
+        const rawEmail = p.email || (p.full_name && p.full_name.includes('@') ? p.full_name : '');
+        const email = rawEmail ? rawEmail.trim().toLowerCase() : '';
+        const rawName = p.full_name && !p.full_name.includes('@') ? p.full_name.trim() : '';
+        const firstName = p.first_name || (rawName ? rawName.split(' ')[0] : '') || (email ? email.split('@')[0] : '');
+        const lastName = p.last_name || (rawName ? rawName.split(' ').slice(1).join(' ') : '');
+        
+        // Discard broken ghost rows that have no name, email, or employee id
+        if (!email && !firstName && !p.employee_id) return null;
+
+        return {
+          ...p,
+          email: email || p.email,
+          first_name: firstName,
+          last_name: lastName,
+          username: p.username || (email ? email.split('@')[0] : 'employee'),
+          employee_id: p.employee_id || (p.id ? `EMP-${p.id.slice(0, 6)}` : null),
+          role: p.role || UserRole.SALES_REP,
+          status: p.status || EmployeeStatus.ACTIVE,
+          access_only: p.access_only || 'ALL',
+        };
+      };
+
+      try {
+        let query = supabase
+          .from('profiles')
+          .select('*, team:teams(id, name)')
+          .neq('role', 'SUPER_ADMIN');
+
+        if (orgId) {
+          query = query.or(`organization_id.eq.${orgId},organization_id.is.null`);
+        }
+
+        const { data, error } = await query;
+        if (!error && Array.isArray(data)) {
+          data.forEach((p: any) => {
+            const normalized = normalizeProfile(p);
+            if (!normalized) return;
+            const key = (normalized.email || normalized.id).toLowerCase();
+            profileMap.set(key, normalized);
+          });
+        } else {
+          // Resilient fallback without nested join
+          const fallback = await supabase
+            .from('profiles')
+            .select('*')
+            .neq('role', 'SUPER_ADMIN');
+          if (fallback.data && Array.isArray(fallback.data)) {
+            fallback.data.forEach((p: any) => {
+              const normalized = normalizeProfile(p);
+              if (!normalized) return;
+              const key = (normalized.email || normalized.id).toLowerCase();
+              profileMap.set(key, normalized);
+            });
+          }
+        }
+      } catch (remoteErr) {
+        console.warn('[employeesService] Supabase profile query notice:', remoteErr);
+      }
+
+      // Also query remote employee_invitations to ensure newly invited members are present
+      try {
+        const { data: invs } = await supabase
+          .from('employee_invitations')
+          .select('*')
+          .neq('status', 'REVOKED');
+        if (invs && Array.isArray(invs)) {
+          invs.forEach((inv: any) => {
+            const emailKey = (inv.email || '').toLowerCase();
+            if (emailKey && !profileMap.has(emailKey)) {
+              profileMap.set(emailKey, {
+                id: inv.user_id || inv.id,
+                organization_id: inv.organization_id || orgId,
+                first_name: inv.first_name || '',
+                last_name: inv.last_name || '',
+                email: inv.email,
+                phone: inv.phone || null,
+                username: inv.email ? inv.email.split('@')[0] : 'employee',
+                employee_id: inv.employee_id_str || `EMP-${(inv.id || '').slice(0, 6)}`,
+                role: (inv.role as UserRole) || UserRole.SALES_REP,
+                team_id: inv.team_id || null,
+                manager_id: inv.manager_id || null,
+                avatar_url: null,
+                joining_date: inv.created_at ? new Date(inv.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                status: EmployeeStatus.ACTIVE,
+                access_only: inv.access_only || 'ALL',
+                created_at: inv.created_at || new Date().toISOString(),
+                updated_at: inv.updated_at || new Date().toISOString(),
+              });
+            }
+          });
+        }
+      } catch (invErr) {
+        console.warn('[employeesService] Remote invitations query notice:', invErr);
+      }
     }
-    if (role) query = query.eq('role', role);
-    if (team_id) query = query.eq('team_id', team_id);
-    if (status) query = query.eq('status', status);
 
+    // 2. Merge localDb profiles (guarantees local creations and offline invites appear immediately)
+    try {
+      const localProfiles = localDb.getAll<Profile>('profiles');
+      localProfiles.forEach(lp => {
+        const email = lp.email?.toLowerCase();
+        // Ignore any residual demo accounts
+        if (email === 'manager@jvecom.in' || email === 'rep@jvecom.in' || email === 'admin@jvecom.in' || lp.employee_id === 'MGR001' || lp.employee_id === 'REP001') {
+          return;
+        }
+
+        const key = (lp.email || lp.id).toLowerCase();
+        const existing = profileMap.get(key);
+        if (existing) {
+          profileMap.set(key, {
+            ...existing,
+            ...lp,
+            first_name: lp.first_name || existing.first_name,
+            last_name: lp.last_name || existing.last_name,
+            access_only: lp.access_only || existing.access_only || 'ALL',
+            employee_id: lp.employee_id || existing.employee_id,
+            username: lp.username || existing.username,
+          });
+        } else {
+          profileMap.set(key, {
+            ...lp,
+            role: lp.role || UserRole.SALES_REP,
+            status: lp.status || EmployeeStatus.ACTIVE,
+            access_only: lp.access_only || 'ALL',
+          });
+        }
+      });
+    } catch {}
+
+    // 4. Enrich teams and managers
+    let teams: Team[] = [];
+    try {
+      teams = localDb.getAll<Team>('teams');
+    } catch {}
+
+    let list = Array.from(profileMap.values()).map(p => ({
+      ...p,
+      team: p.team || teams.find(t => t.id === p.team_id),
+    }));
+
+    // 5. Apply filters
+    if (search) {
+      const s = search.toLowerCase();
+      list = list.filter(p =>
+        `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase().includes(s) ||
+        (p.email || '').toLowerCase().includes(s) ||
+        (p.employee_id || '').toLowerCase().includes(s) ||
+        (p.username || '').toLowerCase().includes(s) ||
+        (p.phone || '').toLowerCase().includes(s)
+      );
+    }
+    if (role && role !== 'ALL') {
+      list = list.filter(p => p.role === role);
+    }
+    if (team_id) {
+      list = list.filter(p => p.team_id === team_id);
+    }
+    if (status) {
+      list = list.filter(p => p.status === status);
+    }
+
+    // Sort
+    list.sort((a: any, b: any) => {
+      const valA = a[sortBy] ?? '';
+      const valB = b[sortBy] ?? '';
+      if (sortDir === 'asc') {
+        return valA > valB ? 1 : -1;
+      }
+      return valA < valB ? 1 : -1;
+    });
+
+    const total = list.length;
     const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
-
-    query = query.order(sortBy, { ascending: sortDir === 'asc' }).range(from, to);
-
-    const { data, count, error } = await query;
-    if (error) throw error;
+    const paginated = list.slice(from, from + pageSize);
 
     return {
-      data: (data || []) as unknown as Profile[],
-      total: count || 0,
+      data: paginated,
+      total,
       page,
       pageSize,
-      totalPages: Math.ceil((count || 0) / pageSize),
+      totalPages: Math.ceil(total / pageSize) || 1,
     };
   },
 
   async getById(id: string): Promise<Profile> {
-    if (isLocalStorageMode()) {
-      const p = localDb.getById<Profile>('profiles', id);
-      if (!p) throw new Error('Employee not found');
-      const teams = localDb.getAll<Team>('teams');
-      const profiles = localDb.getAll<Profile>('profiles');
-      const orgs = localDb.getAll<Organization>('organization');
+    const teams = localDb.getAll<Team>('teams');
+    const profiles = localDb.getAll<Profile>('profiles');
+    const orgs = localDb.getAll<Organization>('organization');
+
+    if (!isLocalStorageMode()) {
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('*, team:teams(id, name), organization:organizations(*)')
+          .eq('id', id)
+          .maybeSingle();
+
+        if (data) {
+          return {
+            ...(data as unknown as Profile),
+            role: data.role || UserRole.SALES_REP,
+            status: data.status || EmployeeStatus.ACTIVE,
+            access_only: data.access_only || 'ALL',
+            team: data.team || teams.find(t => t.id === data.team_id),
+          };
+        }
+      } catch (err) {
+        console.warn('[employeesService] Supabase getById notice:', err);
+      }
+    }
+
+    // Check localDb
+    const local = localDb.getById<Profile>('profiles', id)
+      || profiles.find(p => p.id === id || p.email === id);
+
+    if (local) {
       return {
-        ...p,
-        role: p.role || UserRole.SALES_REP,
-        status: p.status || EmployeeStatus.ACTIVE,
-        team: teams.find(t => t.id === p.team_id),
-        manager: profiles.find(m => m.id === p.manager_id),
-        organization: orgs.find(o => o.id === p.organization_id),
+        ...local,
+        role: local.role || UserRole.SALES_REP,
+        status: local.status || EmployeeStatus.ACTIVE,
+        access_only: local.access_only || 'ALL',
+        team: teams.find(t => t.id === local.team_id),
+        manager: profiles.find(m => m.id === local.manager_id),
+        organization: orgs.find(o => o.id === local.organization_id),
       };
     }
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*, team:teams(id, name), manager:profiles!profiles_manager_id_fkey(id, first_name, last_name), organization:organizations(*)')
-      .eq('id', id)
-      .single();
-
-    if (error) throw error;
-    return data as unknown as Profile;
+    throw new Error('Employee not found');
   },
 
   /**
@@ -294,7 +438,13 @@ export const employeesService = {
     };
 
     // Always persist to local database as well
-    localDb.insert<Profile>('profiles', newProfile);
+    const existingProfiles = localDb.getAll<Profile>('profiles');
+    const existingIdx = existingProfiles.findIndex(p => p.email?.toLowerCase() === normalizedEmail || p.id === newId);
+    if (existingIdx >= 0) {
+      localDb.update<Profile>('profiles', existingProfiles[existingIdx].id, newProfile);
+    } else {
+      localDb.insert<Profile>('profiles', newProfile);
+    }
 
     // Save local credential for fallback
     if (input.password) {
@@ -333,6 +483,11 @@ export const employeesService = {
         await supabase.from('profiles').delete().eq('id', id);
       } catch (err) {
         console.warn('[employeesService] Remote profile delete notice:', err);
+      }
+      try {
+        await supabase.from('employee_invitations').delete().or(`user_id.eq.${id},id.eq.${id}`);
+      } catch (err) {
+        console.warn('[employeesService] Remote invitation delete notice:', err);
       }
     }
   },

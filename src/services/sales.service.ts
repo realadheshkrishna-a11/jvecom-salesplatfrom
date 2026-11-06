@@ -246,28 +246,55 @@ export const salesService = {
   },
 
   async getStats(orgId: string, userId?: string, dateFrom?: string, dateTo?: string) {
-    let query = supabase
-      .from('sales')
-      .select('total, payment_status, sale_date')
-      .eq('organization_id', orgId);
+    if (isLocalStorageMode()) {
+      const sales = localDb.getSales(orgId, { user_id: userId });
+      const paidSales = sales.filter(s => s.payment_status === 'PAID');
+      const totalRevenue = paidSales.reduce((acc, s) => acc + Number(s.total || 0), 0);
+      const count = paidSales.length;
+      return {
+        totalRevenue,
+        paidSalesCount: count,
+        avgDealSize: count > 0 ? Math.round(totalRevenue / count) : 0,
+        totalSalesCount: sales.length,
+      };
+    }
 
-    if (userId) query = query.eq('user_id', userId);
-    if (dateFrom) query = query.gte('sale_date', dateFrom);
-    if (dateTo) query = query.lte('sale_date', dateTo);
+    try {
+      let query = supabase
+        .from('sales')
+        .select('total, payment_status, sale_date')
+        .eq('organization_id', orgId);
 
-    const { data, error } = await query;
-    if (error) throw error;
+      if (userId) query = query.eq('user_id', userId);
+      if (dateFrom) query = query.gte('sale_date', dateFrom);
+      if (dateTo) query = query.lte('sale_date', dateTo);
 
-    const paidSales = (data || []).filter(s => s.payment_status === 'PAID');
-    const totalRevenue = paidSales.reduce((acc, s) => acc + Number(s.total || 0), 0);
-    const count = paidSales.length;
-    const avgDealSize = count > 0 ? Math.round(totalRevenue / count) : 0;
+      const { data, error } = await query;
+      if (error) throw error;
 
-    return {
-      totalRevenue,
-      paidSalesCount: count,
-      avgDealSize,
-      totalSalesCount: (data || []).length,
-    };
+      const paidSales = (data || []).filter(s => s.payment_status === 'PAID');
+      const totalRevenue = paidSales.reduce((acc, s) => acc + Number(s.total || 0), 0);
+      const count = paidSales.length;
+      const avgDealSize = count > 0 ? Math.round(totalRevenue / count) : 0;
+
+      return {
+        totalRevenue,
+        paidSalesCount: count,
+        avgDealSize,
+        totalSalesCount: (data || []).length,
+      };
+    } catch (err) {
+      console.warn('[salesService.getStats] Remote query error, using local fallback:', err);
+      const sales = localDb.getSales(orgId, { user_id: userId });
+      const paidSales = sales.filter(s => s.payment_status === 'PAID');
+      const totalRevenue = paidSales.reduce((acc, s) => acc + Number(s.total || 0), 0);
+      const count = paidSales.length;
+      return {
+        totalRevenue,
+        paidSalesCount: count,
+        avgDealSize: count > 0 ? Math.round(totalRevenue / count) : 0,
+        totalSalesCount: sales.length,
+      };
+    }
   }
 };

@@ -46,18 +46,40 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [activeRoleLoading, setActiveRoleLoading] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
   const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard';
 
+  // Load remembered email only if it exists and is not the hardcoded test address
+  const getInitialEmail = () => {
+    if (emailParam) return emailParam;
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('salesos_remembered_email');
+      if (saved && saved !== 'realadheshkrishna@gmail.com') {
+        return saved;
+      }
+    }
+    return '';
+  };
+
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: emailParam || (typeof localStorage !== 'undefined' ? localStorage.getItem('salesos_remembered_email') || 'realadheshkrishna@gmail.com' : 'realadheshkrishna@gmail.com'),
+      email: getInitialEmail(),
       password: tempPwdParam || '',
     },
   });
+
+  // Purge any stale hardcoded test email stored in local storage
+  useEffect(() => {
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('salesos_remembered_email');
+      if (saved === 'realadheshkrishna@gmail.com') {
+        localStorage.removeItem('salesos_remembered_email');
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (emailParam) {
@@ -108,7 +130,7 @@ export function LoginPage() {
           </div>
 
           <p className="text-xs text-muted-foreground leading-relaxed">
-            You are currently logged into SalesOS. To switch accounts or sign in with your Supabase credentials (<span className="text-foreground font-semibold">realadheshkrishna@gmail.com</span>), click <strong>Sign Out</strong> below.
+            You are currently logged into SalesOS. To switch accounts or sign in with different credentials, click <strong>Sign Out</strong> below.
           </p>
 
           <div className="flex flex-col gap-2.5 pt-2">
@@ -124,7 +146,9 @@ export function LoginPage() {
             <Button
               variant="outline"
               onClick={async () => {
+                try { localStorage.removeItem('salesos_remembered_email'); } catch { /* ignore */ }
                 await signOut();
+                form.reset({ email: '', password: '' });
                 navigate('/login', { replace: true });
               }}
               className="w-full h-10 font-semibold text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer"
@@ -144,6 +168,8 @@ export function LoginPage() {
 
     if (rememberMe && typeof localStorage !== 'undefined') {
       localStorage.setItem('salesos_remembered_email', values.email);
+    } else if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('salesos_remembered_email');
     }
 
     const { error } = await signIn(values.email, values.password);
@@ -369,7 +395,7 @@ export function LoginPage() {
                           <Input
                             id="email"
                             type="email"
-                            placeholder="realadheshkrishna@gmail.com"
+                            placeholder="Enter your email"
                             autoComplete="email"
                             className="pl-9 h-10 text-sm font-medium"
                             {...form.register('email')}
@@ -398,7 +424,7 @@ export function LoginPage() {
                           <Input
                             id="password"
                             type={showPassword ? 'text' : 'password'}
-                            placeholder="Enter password set in Supabase"
+                            placeholder="Enter password"
                             autoComplete="current-password"
                             className="pl-9 pr-9 h-10 text-sm"
                             {...form.register('password')}
@@ -450,43 +476,6 @@ export function LoginPage() {
                         )}
                       </Button>
                     </form>
-
-                    {/* Quick autofill helper chips */}
-                    <div className="pt-2">
-                      <p className="text-[11px] font-medium text-muted-foreground mb-2 text-center">
-                        Quick autofill:
-                      </p>
-                      <div className="grid grid-cols-3 gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleFillCredentials('realadheshkrishna@gmail.com', '')}
-                          className="text-xs h-8 px-2 border-blue-500/40 text-blue-600 dark:text-blue-400 hover:bg-blue-50/50 font-semibold truncate"
-                          title="realadheshkrishna@gmail.com"
-                        >
-                          Adhesh (Admin)
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleFillCredentials('manager@jvecom.in', 'Manager@123')}
-                          className="text-xs h-8 px-2 border-border/80 hover:bg-muted/60"
-                        >
-                          Sales Mgr
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleFillCredentials('rep@jvecom.in', 'Rep@123')}
-                          className="text-xs h-8 px-2 border-border/80 hover:bg-muted/60"
-                        >
-                          Sales Rep
-                        </Button>
-                      </div>
-                    </div>
                   </TabsContent>
 
                   {/* Tab 2: 1-Click Role Direct Sign-in */}
@@ -554,7 +543,7 @@ export function LoginPage() {
                       <Input
                         id="email"
                         type="email"
-                        placeholder="realadheshkrishna@gmail.com"
+                        placeholder="Enter your email"
                         autoComplete="email"
                         className="pl-9 h-10 text-sm font-medium"
                         {...form.register('email')}
@@ -582,7 +571,7 @@ export function LoginPage() {
                       <Input
                         id="password"
                         type={showPassword ? 'text' : 'password'}
-                        placeholder="Enter password set in Supabase"
+                        placeholder="Enter password"
                         autoComplete="current-password"
                         className="pl-9 pr-9 h-10 text-sm"
                         {...form.register('password')}

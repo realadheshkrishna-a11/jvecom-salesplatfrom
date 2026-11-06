@@ -325,9 +325,14 @@ export const leadsService = {
 
     query = query.order('due_date', { ascending: true });
 
-    const { data, error } = await query;
-    if (error) throw error;
-    return (data || []) as unknown as FollowUp[];
+    try {
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as unknown as FollowUp[];
+    } catch (err) {
+      console.warn('[leadsService.getFollowUps] Supabase error, fallback to localDb:', err);
+      return localDb.getFollowUps(orgId, filters);
+    }
   },
 
   async createFollowUp(orgId: string, userId: string, input: FollowUpInput): Promise<FollowUp> {

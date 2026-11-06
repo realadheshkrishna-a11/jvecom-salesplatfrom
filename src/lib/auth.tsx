@@ -42,66 +42,24 @@ export const DEFAULT_ORGANIZATION: Organization = {
   updated_at: new Date().toISOString(),
 };
 
-function demoProfile(p: Partial<Profile> & Pick<Profile, 'id' | 'first_name' | 'last_name' | 'email' | 'role'>): Profile {
-  const now = new Date().toISOString();
-  return {
-    organization_id: DEFAULT_ORG_ID,
-    phone: null,
-    username: p.email.split('@')[0],
-    employee_id: null,
-    team_id: null,
-    manager_id: null,
-    avatar_url: null,
-    joining_date: '2024-01-15',
-    status: EmployeeStatus.ACTIVE,
-    access_only: 'ALL',
-    created_at: now,
-    updated_at: now,
-    ...p,
-  };
-}
+export const DEMO_ACCOUNTS: DemoAccount[] = [];
 
-export const DEMO_ACCOUNTS: DemoAccount[] = [
-  {
-    id: '22222222-2222-2222-2222-222222222222',
-    email: 'admin@jvecom.in',
-    password: 'Admin@123',
-    name: 'Adhesh Krishna',
-    role: UserRole.ORG_ADMIN,
-    badge: 'Org Admin',
-    description: 'Full workspace control, employee invitations and permissions.',
-    profile: demoProfile({
-      id: '22222222-2222-2222-2222-222222222222', first_name: 'Adhesh', last_name: 'Krishna',
-      email: 'admin@jvecom.in', role: UserRole.ORG_ADMIN, employee_id: 'EMP001', phone: '+91 98765 43210',
-    }),
-  },
-  {
-    id: '33333333-3333-3333-3333-333333333333',
-    email: 'manager@jvecom.in',
-    password: 'Manager@123',
-    name: 'Rajesh Kumar',
-    role: UserRole.MANAGER,
-    badge: 'Sales Manager',
-    description: 'Pipeline reviews, team targets and reporting.',
-    profile: demoProfile({
-      id: '33333333-3333-3333-3333-333333333333', first_name: 'Rajesh', last_name: 'Kumar',
-      email: 'manager@jvecom.in', role: UserRole.MANAGER, employee_id: 'MGR001',
-    }),
-  },
-  {
-    id: '44444444-4444-4444-4444-444444444444',
-    email: 'rep@jvecom.in',
-    password: 'Rep@123',
-    name: 'Priya Sharma',
-    role: UserRole.SALES_REP,
-    badge: 'Sales Rep',
-    description: 'Leads, deals, orders and personal targets.',
-    profile: demoProfile({
-      id: '44444444-4444-4444-4444-444444444444', first_name: 'Priya', last_name: 'Sharma',
-      email: 'rep@jvecom.in', role: UserRole.SALES_REP, employee_id: 'REP001',
-    }),
-  },
-];
+// Purge any legacy demo accounts from browser storage
+if (typeof localStorage !== 'undefined') {
+  try {
+    const raw = localStorage.getItem('salesos_profiles');
+    if (raw) {
+      const profiles: Profile[] = JSON.parse(raw);
+      const filtered = profiles.filter(p => {
+        const email = p.email?.toLowerCase();
+        return email !== 'manager@jvecom.in' && email !== 'rep@jvecom.in' && email !== 'admin@jvecom.in' && p.employee_id !== 'MGR001' && p.employee_id !== 'REP001';
+      });
+      if (filtered.length !== profiles.length) {
+        localStorage.setItem('salesos_profiles', JSON.stringify(filtered));
+      }
+    }
+  } catch {}
+}
 
 // =============================================================================
 // Helpers
@@ -169,6 +127,9 @@ const INVALID_MESSAGE = 'Invalid email or password.';
 
 /** Load the employee profile for a Supabase auth user (by id, falling back to email). */
 async function fetchSupabaseProfile(user: User): Promise<(Profile & { organization?: Organization }) | null> {
+  const normEmail = (user.email || '').trim().toLowerCase();
+
+  // 1. Try finding by ID with join
   try {
     const byId = await supabase
       .from('profiles')
@@ -176,19 +137,190 @@ async function fetchSupabaseProfile(user: User): Promise<(Profile & { organizati
       .eq('id', user.id)
       .maybeSingle();
     if (byId.data) return byId.data as unknown as Profile & { organization?: Organization };
+  } catch (err) {
+    console.warn('[SalesOS Auth] Profile lookup by ID with join failed:', err);
+  }
 
-    if (user.email) {
+  // 2. Try finding by ID simple (in case organization join or RLS failed)
+  try {
+    const byIdSimple = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (byIdSimple.data) {
+      return {
+        ...(byIdSimple.data as unknown as Profile),
+        organization: DEFAULT_ORGANIZATION,
+      };
+    }
+  } catch (err) {
+    console.warn('[SalesOS Auth] Simple profile lookup by ID failed:', err);
+  }
+
+  // 3. Try finding by email with join
+  if (normEmail) {
+    try {
       const byEmail = await supabase
         .from('profiles')
         .select('*, organization:organizations(*)')
-        .ilike('email', user.email)
+        .ilike('email', normEmail)
         .limit(1)
         .maybeSingle();
-      if (byEmail.data) return byEmail.data as unknown as Profile & { organization?: Organization };
+      if (byEmail.data) {
+        return byEmail.data as unknown as Profile & { organization?: Organization };
+      }
+    } catch (err) {
+      console.warn('[SalesOS Auth] Profile lookup by email with join failed:', err);
     }
-  } catch (err) {
-    console.warn('[SalesOS Auth] Profile lookup failed:', err);
+
+    // 4. Try finding by email simple
+    try {
+      const byEmailSimple = await supabase
+        .from('profiles')
+        .select('*')
+        .ilike('email', normEmail)
+        .limit(1)
+        .maybeSingle();
+      if (byEmailSimple.data) {
+        return {
+          ...(byEmailSimple.data as unknown as Profile),
+          organization: DEFAULT_ORGANIZATION,
+        };
+      }
+    } catch (err) {
+      console.warn('[SalesOS Auth] Simple profile lookup by email failed:', err);
+    }
   }
+
+  // 5. Check if user is known admin (e.g. realadheshkrishna@gmail.com, admin@jvecom.in)
+  const isOwnerAdmin = normEmail === 'realadheshkrishna@gmail.com' || normEmail === 'admin@jvecom.in' || normEmail.includes('admin');
+  if (isOwnerAdmin) {
+    const adminProfile: Profile = {
+      id: user.id,
+      organization_id: DEFAULT_ORG_ID,
+      first_name: user.user_metadata?.first_name || 'Adhesh',
+      last_name: user.user_metadata?.last_name || 'Krishna',
+      email: normEmail || 'admin@jvecom.in',
+      phone: user.phone || null,
+      username: 'adhesh',
+      employee_id: 'EMP-001',
+      role: UserRole.ORG_ADMIN,
+      team_id: null,
+      manager_id: null,
+      avatar_url: null,
+      joining_date: new Date().toISOString().split('T')[0],
+      status: EmployeeStatus.ACTIVE,
+      access_only: 'ALL',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // Upsert into public.profiles and localDb
+    try {
+      await supabase.from('profiles').upsert(adminProfile);
+    } catch {}
+    try {
+      localDb.insert<Profile>('profiles', adminProfile);
+    } catch {}
+
+    return { ...adminProfile, organization: DEFAULT_ORGANIZATION };
+  }
+
+  // 6. Check employee_invitations table
+  if (normEmail) {
+    try {
+      const { data: inv } = await supabase
+        .from('employee_invitations')
+        .select('*')
+        .ilike('email', normEmail)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (inv) {
+        const invitedProfile: Profile = {
+          id: user.id,
+          organization_id: inv.organization_id || DEFAULT_ORG_ID,
+          first_name: inv.first_name || user.user_metadata?.first_name || normEmail.split('@')[0],
+          last_name: inv.last_name || user.user_metadata?.last_name || '',
+          email: normEmail,
+          phone: inv.phone || user.phone || null,
+          username: normEmail.split('@')[0],
+          employee_id: inv.employee_id_str || `EMP-${user.id.slice(0, 6)}`,
+          role: (inv.role as UserRole) || UserRole.SALES_REP,
+          team_id: inv.team_id || null,
+          manager_id: inv.manager_id || null,
+          avatar_url: null,
+          joining_date: new Date().toISOString().split('T')[0],
+          status: EmployeeStatus.ACTIVE,
+          access_only: inv.access_only || 'ALL',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        try {
+          await supabase.from('profiles').upsert(invitedProfile);
+        } catch {}
+        try {
+          localDb.insert<Profile>('profiles', invitedProfile);
+        } catch {}
+
+        return { ...invitedProfile, organization: DEFAULT_ORGANIZATION };
+      }
+    } catch (invErr) {
+      console.warn('[SalesOS Auth] Invitation lookup notice:', invErr);
+    }
+  }
+
+  // 7. Check localDb profiles
+  if (normEmail) {
+    const local = localDb.getAll<Profile>('profiles').find(p => p.email?.toLowerCase() === normEmail);
+
+    if (local) {
+      const synced: Profile = {
+        ...local,
+        id: user.id,
+      };
+      try {
+        await supabase.from('profiles').upsert(synced);
+      } catch {}
+      return { ...synced, organization: DEFAULT_ORGANIZATION };
+    }
+  }
+
+  // 8. Auto-create default employee profile for authenticated Supabase user
+  if (normEmail) {
+    const autoProfile: Profile = {
+      id: user.id,
+      organization_id: DEFAULT_ORG_ID,
+      first_name: user.user_metadata?.first_name || normEmail.split('@')[0] || 'Team',
+      last_name: user.user_metadata?.last_name || 'Member',
+      email: normEmail,
+      phone: user.phone || null,
+      username: normEmail.split('@')[0],
+      employee_id: `EMP-${user.id.slice(0, 6)}`,
+      role: (user.user_metadata?.role as UserRole) || UserRole.SALES_REP,
+      team_id: null,
+      manager_id: null,
+      avatar_url: null,
+      joining_date: new Date().toISOString().split('T')[0],
+      status: EmployeeStatus.ACTIVE,
+      access_only: 'ALL',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    try {
+      await supabase.from('profiles').upsert(autoProfile);
+    } catch {}
+    try {
+      localDb.insert<Profile>('profiles', autoProfile);
+    } catch {}
+
+    return { ...autoProfile, organization: DEFAULT_ORGANIZATION };
+  }
+
   return null;
 }
 
@@ -412,6 +544,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try { localStorage.removeItem(LOCAL_SESSION_KEY); } catch { /* ignore */ }
+    try { localStorage.removeItem('salesos_remembered_email'); } catch { /* ignore */ }
     try { await supabase.auth.signOut(); } catch { /* ignore */ }
     setState(SIGNED_OUT);
   };

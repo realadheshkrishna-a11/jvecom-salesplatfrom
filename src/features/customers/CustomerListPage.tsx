@@ -106,17 +106,17 @@ export function CustomerListPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="first_name">First Name</Label>
-                  <Input id="first_name" placeholder="Rohan" {...form.register('first_name')} />
+                  <Input id="first_name" placeholder="First Name" {...form.register('first_name')} />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="last_name">Last Name</Label>
-                  <Input id="last_name" placeholder="Sharma" {...form.register('last_name')} />
+                  <Input id="last_name" placeholder="Last Name" {...form.register('last_name')} />
                 </div>
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="rohan@example.com" {...form.register('email')} />
+                <Input id="email" type="email" placeholder="customer@example.com" {...form.register('email')} />
               </div>
 
               <div className="grid grid-cols-2 gap-3">

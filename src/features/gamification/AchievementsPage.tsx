@@ -22,7 +22,7 @@ export function AchievementsPage() {
         setLoading(true);
         const [achRes, userAchRes] = await Promise.allSettled([
           gamificationService.getAchievements(orgId),
-          gamificationService.getUserAchievements(profile?.id || '44444444-4444-4444-4444-444444444441'),
+          profile?.id ? gamificationService.getUserAchievements(profile.id) : Promise.resolve([]),
         ]);
 
         if (achRes.status === 'fulfilled' && achRes.value.length > 0) {

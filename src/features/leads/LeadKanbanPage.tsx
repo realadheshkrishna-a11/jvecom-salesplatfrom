@@ -743,7 +743,7 @@ export function LeadKanbanPage() {
                   <div className="space-y-1">
                     <Label className="text-[11px]">First Name *</Label>
                     <Input
-                      placeholder="e.g. Ramesh"
+                      placeholder="First name"
                       value={formFirstName}
                       onChange={(e) => setFormFirstName(e.target.value)}
                       className="h-8 text-xs"
@@ -755,7 +755,7 @@ export function LeadKanbanPage() {
                   <div className="space-y-1">
                     <Label className="text-[11px]">Last Name</Label>
                     <Input
-                      placeholder="e.g. Kumar"
+                      placeholder="Last name"
                       value={formLastName}
                       onChange={(e) => setFormLastName(e.target.value)}
                       className="h-8 text-xs"

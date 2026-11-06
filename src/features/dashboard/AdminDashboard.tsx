@@ -11,6 +11,7 @@ import { formatCurrency, formatNumber } from '@/lib/utils';
 import { salesService } from '@/services/sales.service';
 import { gamificationService } from '@/services/gamification.service';
 import { leadsService } from '@/services/leads.service';
+import { targetsService } from '@/services/targets.service';
 import {
   IndianRupee, ShoppingBag, Users, Target, Award,
   Flame, TrendingUp, Calendar, ArrowUpRight
@@ -36,6 +37,7 @@ export function AdminDashboard() {
 
   const [recentSales, setRecentSales] = useState<any[]>([]);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [orgTarget, setOrgTarget] = useState(0);
 
   const revenueTrend: { month: string; revenue: number; target: number }[] = [];
   const productDistribution: { name: string; value: number; color: string }[] = [];
@@ -44,10 +46,11 @@ export function AdminDashboard() {
     async function loadData() {
       try {
         setLoading(true);
-        const [salesRes, lbRes, statsRes] = await Promise.allSettled([
+        const [salesRes, lbRes, statsRes, targetRes] = await Promise.allSettled([
           salesService.list(orgId, { pageSize: 5 }),
           gamificationService.getLeaderboard(orgId, 'REVENUE', 5),
           salesService.getStats(orgId),
+          targetsService.list(orgId, { is_active: true }),
         ]);
 
         if (salesRes.status === 'fulfilled' && salesRes.value.data.length > 0) {
@@ -76,13 +79,18 @@ export function AdminDashboard() {
           setLeaderboard([]);
         }
 
-        if (statsRes.status === 'fulfilled' && statsRes.value.totalRevenue > 0) {
+        if (statsRes.status === 'fulfilled' && statsRes.value) {
           setStats(prev => ({
             ...prev,
-            totalRevenue: statsRes.value.totalRevenue,
-            paidSalesCount: statsRes.value.paidSalesCount,
-            avgDealSize: statsRes.value.avgDealSize,
+            totalRevenue: statsRes.value.totalRevenue || 0,
+            paidSalesCount: statsRes.value.paidSalesCount || 0,
+            avgDealSize: statsRes.value.avgDealSize || 0,
           }));
+        }
+
+        if (targetRes.status === 'fulfilled' && targetRes.value?.data) {
+          const totTarget = targetRes.value.data.reduce((sum: number, t: any) => sum + (Number(t.target_value || t.target_amount) || 0), 0);
+          setOrgTarget(totTarget);
         }
       } catch (err) {
         console.error('Error loading admin dashboard:', err);
@@ -98,11 +106,13 @@ export function AdminDashboard() {
     return <LoadingSpinner text="Aggregating sales and organizational analytics..." />;
   }
 
+  const targetPct = orgTarget > 0 ? Math.round((stats.totalRevenue / orgTarget) * 100) : 0;
+
   return (
     <div className="space-y-8 pb-6">
       <header className="flex flex-col gap-5 border-b border-border/70 pb-7 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">September 2026 · Performance</p>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Performance Overview</p>
           <h1 className="text-3xl font-semibold tracking-[-0.04em] text-foreground">Business at a glance</h1>
           <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">A focused view of revenue, momentum, and team performance for {organization?.name || 'your organization'}.</p>
         </div>
@@ -140,10 +150,10 @@ export function AdminDashboard() {
         <StatCard
           className="rounded-none border-0 bg-card shadow-none hover:shadow-none"
           title="Target progress"
-          value="114.2%"
-          description="₹24.5L of ₹21.5L target"
+          value={orgTarget > 0 ? `${targetPct}%` : '0%'}
+          description={orgTarget > 0 ? `${formatCurrency(stats.totalRevenue)} of ${formatCurrency(orgTarget)} target` : 'No active target set'}
           icon={<Target className="h-4 w-4" />}
-          variant="success"
+          variant={orgTarget > 0 && stats.totalRevenue >= orgTarget ? 'success' : 'primary'}
         />
       </section>
 

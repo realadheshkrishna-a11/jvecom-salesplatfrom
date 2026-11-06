@@ -75,14 +75,22 @@ export const gamificationService = {
   },
 
   async getUserAchievements(userId: string): Promise<UserAchievement[]> {
-    const { data, error } = await supabase
-      .from('user_achievements')
-      .select('*, achievement:achievements(*)')
-      .eq('user_id', userId)
-      .order('unlocked_at', { ascending: false });
+    if (isLocalStorageMode()) {
+      return localDb.getAll<UserAchievement>('user_achievements').filter(ua => ua.user_id === userId);
+    }
+    try {
+      const { data, error } = await supabase
+        .from('user_achievements')
+        .select('*, achievement:achievements(*)')
+        .eq('user_id', userId)
+        .order('unlocked_at', { ascending: false });
 
-    if (error) throw error;
-    return (data || []) as unknown as UserAchievement[];
+      if (error) throw error;
+      return (data || []) as unknown as UserAchievement[];
+    } catch (err) {
+      console.warn('[gamificationService.getUserAchievements] Notice:', err);
+      return localDb.getAll<UserAchievement>('user_achievements').filter(ua => ua.user_id === userId);
+    }
   },
 
   async getLeaderboard(

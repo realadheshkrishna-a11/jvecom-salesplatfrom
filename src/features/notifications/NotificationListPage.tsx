@@ -12,13 +12,18 @@ import { Bell, CheckCheck, Clock, Award, Target, UserPlus, Info } from 'lucide-r
 
 export function NotificationListPage() {
   const { profile } = useAuth();
-  const userId = profile?.id || '44444444-4444-4444-4444-444444444441';
+  const userId = profile?.id;
   const { success } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const loadNotifications = async () => {
+    if (!userId) {
+      setNotifications([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const res = await notificationsService.list(userId);
@@ -39,6 +44,7 @@ export function NotificationListPage() {
   }, [userId]);
 
   const handleMarkAllAsRead = async () => {
+    if (!userId) return;
     try {
       await notificationsService.markAllAsRead(userId);
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));

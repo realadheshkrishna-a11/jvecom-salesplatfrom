@@ -58,12 +58,8 @@ export function CreateSalePage() {
           setCustomers(cRes.value.data);
           setCustomerId(cRes.value.data[0].id);
         } else {
-          const defaultCust = [
-            { id: '77777777-7777-7777-7777-777777777771', first_name: 'Rohan', last_name: 'Sharma', company: 'TechCorp' },
-            { id: '77777777-7777-7777-7777-777777777772', first_name: 'Priya', last_name: 'Verma', company: 'Innovate Labs' },
-          ] as Customer[];
-          setCustomers(defaultCust);
-          setCustomerId(defaultCust[0].id);
+          setCustomers([]);
+          setCustomerId('');
         }
 
         if (pRes.status === 'fulfilled' && pRes.value.data.length > 0) {
@@ -71,12 +67,8 @@ export function CreateSalePage() {
           const firstProd = pRes.value.data[0];
           setItems([{ id: '1', product_id: firstProd.id, quantity: 1, unit_price: firstProd.selling_price, discount: 0 }]);
         } else {
-          const defaultProd = [
-            { id: '66666666-6666-6666-6666-666666666662', name: 'AI & GenAI Masterclass', selling_price: 65000 },
-            { id: '66666666-6666-6666-6666-666666666661', name: 'Full-Stack Python Bootcamp', selling_price: 35000 },
-          ] as Product[];
-          setProducts(defaultProd);
-          setItems([{ id: '1', product_id: defaultProd[0].id, quantity: 1, unit_price: defaultProd[0].selling_price, discount: 0 }]);
+          setProducts([]);
+          setItems([]);
         }
       } catch (err) {
         console.error('Error in CreateSale load:', err);

@@ -79,7 +79,7 @@ export function AcceptInvitationPage() {
                   <User className="w-4 h-4 text-muted-foreground absolute left-3 top-3" />
                   <Input
                     id="firstName"
-                    placeholder="Adhesh"
+                    placeholder="First name"
                     className="pl-9"
                     required
                     {...form.register('firstName')}
@@ -90,7 +90,7 @@ export function AcceptInvitationPage() {
                 <Label htmlFor="lastName">Last name</Label>
                 <Input
                   id="lastName"
-                  placeholder="Krishna"
+                  placeholder="Last name"
                   required
                   {...form.register('lastName')}
                 />

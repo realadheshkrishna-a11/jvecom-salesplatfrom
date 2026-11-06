@@ -2,54 +2,182 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { PageHeader } from '@/components/common/PageHeader';
 import { StatCard } from '@/components/common/StatCard';
+import { LoadingSpinner } from '@/components/common/EmptyState';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatNumber } from '@/lib/utils';
-import { MODULES, type ModuleId } from '@/lib/permissions';
+import { MODULES } from '@/lib/permissions';
 import { Link } from 'react-router-dom';
 import {
   IndianRupee, Flame, Target, Trophy, Award, Zap,
   Clock, Plus, ArrowRight, ShieldCheck, Mail, Users,
   ShoppingCart, Truck, Package, UserCircle, Briefcase,
-  BarChart3, FileText, Bell, Settings,
+  BarChart3, FileText, Bell, Settings, CheckCircle2,
 } from 'lucide-react';
+import { salesService } from '@/services/sales.service';
+import { targetsService } from '@/services/targets.service';
+import { commissionsService } from '@/services/commissions.service';
+import { bonusesService } from '@/services/bonuses.service';
+import { leadsService } from '@/services/leads.service';
+import { customersService } from '@/services/customers.service';
+import { gamificationService } from '@/services/gamification.service';
+import type { FollowUp, UserAchievement } from '@/types';
 
 export function SalesRepDashboard() {
-  const { profile, can, allowedModules } = useAuth();
+  const { profile, can, organization } = useAuth();
+  const orgId = organization?.id || profile?.organization_id || '11111111-1111-1111-1111-111111111111';
 
-  const repStats = {
-    revenue: 345000,
-    target: 500000,
-    achievement: 69,
-    dealsClosed: 8,
-    commissionEarned: 17250,
-    bonusPending: 25000,
-    currentXP: 1850,
-    nextLevelXP: 2500,
-    levelName: 'Senior Closer',
-    levelRank: 2,
-    nextLevelName: 'Sales Specialist',
-    rank: 3,
+  const [loading, setLoading] = useState(true);
+  const [revenue, setRevenue] = useState(0);
+  const [dealsClosed, setDealsClosed] = useState(0);
+  const [targetAmount, setTargetAmount] = useState(0);
+  const [targetAchievement, setTargetAchievement] = useState(0);
+  const [commissionEarned, setCommissionEarned] = useState(0);
+  const [bonusPending, setBonusPending] = useState(0);
+  const [activePipelineCount, setActivePipelineCount] = useState(0);
+  const [activeCustomersCount, setActiveCustomersCount] = useState(0);
+  const [followUps, setFollowUps] = useState<FollowUp[]>([]);
+  const [achievements, setAchievements] = useState<UserAchievement[]>([]);
+  const [userXP, setUserXP] = useState(0);
+  const [userRank, setUserRank] = useState<number | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadRealData() {
+      if (!profile?.id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const [
+          salesRes,
+          targetRes,
+          commRes,
+          bonusRes,
+          leadsRes,
+          custRes,
+          followUpsRes,
+          achieveRes,
+          xpRes,
+          lbRes,
+        ] = await Promise.allSettled([
+          salesService.getStats(orgId, profile.id),
+          targetsService.list(orgId, { user_id: profile.id, is_active: true }),
+          commissionsService.getRecords(orgId, { user_id: profile.id }),
+          bonusesService.getRecords(orgId, { user_id: profile.id }),
+          leadsService.list(orgId, { assigned_to: profile.id }),
+          customersService.list(orgId),
+          leadsService.getFollowUps(orgId, { userId: profile.id, filter: 'today' }),
+          gamificationService.getUserAchievements(profile.id),
+          gamificationService.getUserXP(profile.id),
+          gamificationService.getLeaderboard(orgId, 'XP', 20),
+        ]);
+
+        if (!isMounted) return;
+
+        // Sales & Revenue
+        if (salesRes.status === 'fulfilled' && salesRes.value) {
+          setRevenue(Number(salesRes.value.totalRevenue) || 0);
+          setDealsClosed(Number(salesRes.value.paidSalesCount) || 0);
+        }
+
+        // Target Quota
+        if (targetRes.status === 'fulfilled' && targetRes.value?.data?.length > 0) {
+          const activeTarget = targetRes.value.data[0];
+          const amt = Number((activeTarget as any).target_value || (activeTarget as any).target_amount) || 0;
+          setTargetAmount(amt);
+          const currentProgress = Number((activeTarget as any).current_value || (activeTarget as any).current_amount) || (salesRes.status === 'fulfilled' ? Number(salesRes.value.totalRevenue) : 0);
+          setTargetAchievement(amt > 0 ? Math.round((currentProgress / amt) * 100) : 0);
+        } else {
+          setTargetAmount(0);
+          setTargetAchievement(0);
+        }
+
+        // Commissions
+        if (commRes.status === 'fulfilled' && commRes.value?.data) {
+          const totalComm = commRes.value.data
+            .filter((c: any) => c.status === 'PENDING' || c.status === 'APPROVED')
+            .reduce((sum: number, c: any) => sum + (Number(c.commission_amount) || 0), 0);
+          setCommissionEarned(totalComm);
+        }
+
+        // Bonuses
+        if (bonusRes.status === 'fulfilled' && bonusRes.value?.data) {
+          const totalBonus = bonusRes.value.data
+            .filter((b: any) => b.status === 'PENDING' || b.status === 'APPROVED')
+            .reduce((sum: number, b: any) => sum + (Number(b.bonus_amount) || 0), 0);
+          setBonusPending(totalBonus);
+        }
+
+        // CRM Leads
+        if (leadsRes.status === 'fulfilled' && leadsRes.value) {
+          setActivePipelineCount(Number(leadsRes.value.total) || leadsRes.value.data?.length || 0);
+        }
+
+        // Customers
+        if (custRes.status === 'fulfilled' && custRes.value) {
+          setActiveCustomersCount(Number(custRes.value.total) || custRes.value.data?.length || 0);
+        }
+
+        // Today Follow-ups
+        if (followUpsRes.status === 'fulfilled' && Array.isArray(followUpsRes.value)) {
+          setFollowUps(followUpsRes.value);
+        }
+
+        // Achievements
+        if (achieveRes.status === 'fulfilled' && Array.isArray(achieveRes.value)) {
+          setAchievements(achieveRes.value);
+        }
+
+        // XP
+        if (xpRes.status === 'fulfilled') {
+          setUserXP(Number(xpRes.value) || 0);
+        } else if ((profile as any)?.xp) {
+          setUserXP(Number((profile as any).xp) || 0);
+        }
+
+        // Leaderboard Rank
+        if (lbRes.status === 'fulfilled' && Array.isArray(lbRes.value)) {
+          const entry = lbRes.value.find((e: any) => e.user_id === profile.id);
+          if (entry) {
+            setUserRank(entry.rank);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching real employee stats:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    loadRealData();
+    return () => { isMounted = false; };
+  }, [profile?.id, orgId]);
+
+  // Level progression derived dynamically from actual userXP
+  const getLevelInfo = (xp: number) => {
+    if (xp >= 10000) return { rank: 5, name: 'Grandmaster Closer', nextName: 'Legendary Partner', nextXP: 25000, minXP: 10000 };
+    if (xp >= 5000) return { rank: 4, name: 'Master Closer', nextName: 'Grandmaster Closer', nextXP: 10000, minXP: 5000 };
+    if (xp >= 2500) return { rank: 3, name: 'Senior Closer', nextName: 'Master Closer', nextXP: 5000, minXP: 2500 };
+    if (xp >= 1000) return { rank: 2, name: 'Sales Specialist', nextName: 'Senior Closer', nextXP: 2500, minXP: 1000 };
+    return { rank: 1, name: 'Sales Associate', nextName: 'Sales Specialist', nextXP: 1000, minXP: 0 };
   };
 
-  const todayFollowUps = [
-    { id: '1', customer: 'Apex Retailers Mumbai', time: '11:30 AM', type: 'Call', notes: 'Discuss wholesale pricing contract' },
-    { id: '2', customer: 'Kiran Mega Mart Bangalore', time: '02:00 PM', type: 'Meeting', notes: 'Product demo for monsoon collection' },
-    { id: '3', customer: 'Zenith Logistics Delhi', time: '04:30 PM', type: 'Email', notes: 'Send revised quote with 5% bulk discount' },
-  ];
-
-  const recentAchievements = [
-    { title: 'Deal Master', desc: 'Closed 5+ wholesale deals this week', icon: Zap, color: 'text-amber-500' },
-    { title: 'Speedy Closer', desc: 'Converted lead in less than 24 hours', icon: Flame, color: 'text-rose-500' },
-    { title: 'Target Crusher', desc: 'Achieved 60%+ monthly quota', icon: Trophy, color: 'text-blue-500' },
-  ];
-
-  const xpProgress = Math.round((repStats.currentXP / repStats.nextLevelXP) * 100);
+  const currentLevel = getLevelInfo(userXP);
+  const xpSpan = currentLevel.nextXP - currentLevel.minXP;
+  const xpIntoLevel = Math.max(0, userXP - currentLevel.minXP);
+  const xpProgress = xpSpan > 0 ? Math.min(100, Math.round((xpIntoLevel / xpSpan) * 100)) : 0;
 
   // Filter modules assigned to this user (excluding dashboard itself)
   const myAssignedModules = MODULES.filter(m => m.id !== 'dashboard' && can(m.id));
+
+  if (loading) {
+    return <LoadingSpinner text="Loading your personal sales workspace..." />;
+  }
 
   return (
     <div className="space-y-6">
@@ -101,24 +229,26 @@ export function SalesRepDashboard() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                      Level {repStats.levelRank} • {repStats.levelName}
+                      Level {currentLevel.rank} • {currentLevel.name}
                     </span>
                     {can('leaderboard') && (
-                      <span className="text-xs text-muted-foreground">Rank #{repStats.rank} Leaderboard</span>
+                      <span className="text-xs text-muted-foreground">
+                        {userRank ? `Rank #${userRank} Leaderboard` : 'Unranked'}
+                      </span>
                     )}
                   </div>
                   <h3 className="text-xl font-bold text-foreground mt-1">
-                    {formatNumber(repStats.currentXP)} XP Total
+                    {formatNumber(userXP)} XP Total
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    Only <span className="text-primary font-bold">{repStats.nextLevelXP - repStats.currentXP} XP</span> to reach Level 3: {repStats.nextLevelName}
+                    Only <span className="text-primary font-bold">{Math.max(0, currentLevel.nextXP - userXP)} XP</span> to reach Level {currentLevel.rank + 1}: {currentLevel.nextName}
                   </p>
                 </div>
               </div>
 
               <div className="w-full md:w-64 space-y-2">
                 <div className="flex justify-between text-xs font-semibold">
-                  <span>Progress to {repStats.nextLevelName}</span>
+                  <span>Progress to {currentLevel.nextName}</span>
                   <span>{xpProgress}%</span>
                 </div>
                 <Progress value={xpProgress} className="h-2.5" />
@@ -128,13 +258,13 @@ export function SalesRepDashboard() {
         </Card>
       )}
 
-      {/* Dynamic KPI Cards — adapts based on granted permissions */}
+      {/* Dynamic KPI Cards — Real data from live services */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {can('sales') && (
           <StatCard
             title="Revenue Generated"
-            value={formatCurrency(repStats.revenue)}
-            description={`${repStats.dealsClosed} deals closed`}
+            value={formatCurrency(revenue)}
+            description={`${dealsClosed} deals closed`}
             icon={<IndianRupee className="w-5 h-5" />}
             variant="success"
           />
@@ -142,8 +272,8 @@ export function SalesRepDashboard() {
         {can('targets') && (
           <StatCard
             title="Target Quota"
-            value={`${repStats.achievement}%`}
-            description={`${formatCurrency(repStats.revenue)} / ${formatCurrency(repStats.target)}`}
+            value={`${targetAchievement}%`}
+            description={targetAmount > 0 ? `${formatCurrency(revenue)} / ${formatCurrency(targetAmount)}` : 'No active target set'}
             icon={<Target className="w-5 h-5" />}
             variant="primary"
           />
@@ -151,8 +281,8 @@ export function SalesRepDashboard() {
         {can('commissions') && (
           <StatCard
             title="Commission Earned"
-            value={formatCurrency(repStats.commissionEarned)}
-            description="Ready for payout"
+            value={formatCurrency(commissionEarned)}
+            description={commissionEarned > 0 ? 'Ready for payout' : 'No pending commissions'}
             icon={<Award className="w-5 h-5" />}
             variant="purple"
           />
@@ -160,8 +290,8 @@ export function SalesRepDashboard() {
         {can('bonuses') && (
           <StatCard
             title="Bonus Target"
-            value={formatCurrency(repStats.bonusPending)}
-            description="Eligible at 100% quota"
+            value={formatCurrency(bonusPending)}
+            description={bonusPending > 0 ? 'Eligible at 100% quota' : 'No bonuses accumulated'}
             icon={<Flame className="w-5 h-5" />}
             variant="warning"
           />
@@ -169,8 +299,8 @@ export function SalesRepDashboard() {
         {can('crm') && !can('sales') && (
           <StatCard
             title="Active Pipeline"
-            value="14 Leads"
-            description="3 ready to close"
+            value={`${activePipelineCount} ${activePipelineCount === 1 ? 'Lead' : 'Leads'}`}
+            description="Assigned in CRM"
             icon={<Target className="w-5 h-5" />}
             variant="primary"
           />
@@ -178,8 +308,8 @@ export function SalesRepDashboard() {
         {can('customers') && (
           <StatCard
             title="Active Accounts"
-            value="32 B2B Clients"
-            description="All regions"
+            value={`${activeCustomersCount} ${activeCustomersCount === 1 ? 'Client' : 'Clients'}`}
+            description="All business accounts"
             icon={<UserCircle className="w-5 h-5" />}
             variant="default"
           />
@@ -253,7 +383,7 @@ export function SalesRepDashboard() {
           </CardContent>
         </Card>
 
-        {/* Side Column: Follow-ups or Achievements */}
+        {/* Side Column: Real Follow-ups or Achievements */}
         <div className="space-y-6">
           {can('crm') && (
             <Card className="border-border/60">
@@ -270,20 +400,39 @@ export function SalesRepDashboard() {
                 </Button>
               </CardHeader>
               <CardContent className="pt-2">
-                <div className="space-y-2.5">
-                  {todayFollowUps.slice(0, 2).map((fu) => (
-                    <div
-                      key={fu.id}
-                      className="p-3 rounded-lg bg-card border border-border/60 space-y-1"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold">{fu.customer}</span>
-                        <Badge variant="outline" className="text-[10px]">{fu.time}</Badge>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground line-clamp-1">{fu.notes}</p>
-                    </div>
-                  ))}
-                </div>
+                {followUps.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {followUps.slice(0, 3).map((fu) => {
+                      const custName = (fu.lead as any)?.customer
+                        ? `${(fu.lead as any).customer.first_name} ${(fu.lead as any).customer.last_name || ''}`
+                        : (fu.lead as any)?.title || 'Scheduled Prospect';
+                      const timeStr = fu.due_date ? new Date(fu.due_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Today';
+                      return (
+                        <div
+                          key={fu.id}
+                          className="p-3 rounded-lg bg-card border border-border/60 space-y-1"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold truncate">{custName}</span>
+                            <Badge variant="outline" className="text-[10px] shrink-0">{timeStr}</Badge>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground line-clamp-1">{fu.notes || 'Prospect follow-up'}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="py-6 px-3 text-center border border-dashed border-border/70 rounded-lg">
+                    <CheckCircle2 className="w-7 h-7 text-emerald-500/80 mx-auto mb-1.5" />
+                    <p className="text-xs font-semibold text-foreground">No Follow-ups Pending</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      You are all caught up on scheduled calls and prospect meetings.
+                    </p>
+                    <Button variant="ghost" size="sm" asChild className="mt-2 h-7 text-xs text-primary">
+                      <Link to="/leads">Open CRM Leads</Link>
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -298,20 +447,31 @@ export function SalesRepDashboard() {
                 <CardDescription>Milestones unlocked</CardDescription>
               </CardHeader>
               <CardContent className="pt-2">
-                <div className="space-y-2">
-                  {recentAchievements.slice(0, 2).map((b) => {
-                    const Icon = b.icon;
-                    return (
-                      <div key={b.title} className="flex items-center gap-2.5 p-2 rounded-lg bg-muted/30">
-                        <Icon className={`w-4 h-4 ${b.color} shrink-0`} />
+                {achievements.length > 0 ? (
+                  <div className="space-y-2">
+                    {achievements.slice(0, 3).map((a) => (
+                      <div key={a.id} className="flex items-center gap-2.5 p-2 rounded-lg bg-muted/30">
+                        <Award className="w-4 h-4 text-purple-500 shrink-0" />
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-semibold text-foreground truncate">{b.title}</p>
-                          <p className="text-[10px] text-muted-foreground truncate">{b.desc}</p>
+                          <p className="text-xs font-semibold text-foreground truncate">
+                            {(a.achievement as any)?.name || 'Achievement Unlocked'}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            {(a.achievement as any)?.description || 'Milestone achieved'}
+                          </p>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-6 px-3 text-center border border-dashed border-border/70 rounded-lg">
+                    <Trophy className="w-7 h-7 text-muted-foreground/40 mx-auto mb-1.5" />
+                    <p className="text-xs font-semibold text-foreground">No Badges Unlocked Yet</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Close sales deals and achieve target milestones to earn achievement badges.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

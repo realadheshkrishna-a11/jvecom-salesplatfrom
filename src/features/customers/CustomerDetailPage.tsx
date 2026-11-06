@@ -32,25 +32,7 @@ export function CustomerDetailPage() {
         if (custRes.status === 'fulfilled') {
           setCustomer(custRes.value);
         } else {
-          setCustomer({
-            id,
-            organization_id: '11111111-1111-1111-1111-111111111111',
-            first_name: 'Rohan',
-            last_name: 'Sharma',
-            email: 'rohan.sharma@techcorp.in',
-            phone: '+91 98111 22233',
-            company: 'TechCorp Solutions',
-            address: 'Indiranagar 100ft Road',
-            city: 'Bangalore',
-            state: 'Karnataka',
-            country: 'India',
-            lead_source: 'Website',
-            assigned_to: null,
-            status: 'CUSTOMER' as any,
-            notes: 'Enrolled in GenAI Masterclass. Interested in corporate training packages for tech teams.',
-            created_at: '2026-02-10',
-            updated_at: '2026-02-10',
-          });
+          setCustomer(null);
         }
 
         if (salesRes.status === 'fulfilled' && salesRes.value.data.length > 0) {

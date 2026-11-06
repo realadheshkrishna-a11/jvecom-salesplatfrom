@@ -3,6 +3,7 @@ import { useAuth } from '@/lib/auth';
 import { employeesService } from '@/services/employees.service';
 import { emailService } from '@/services/email.service';
 import { teamsService } from '@/services/teams.service';
+import { localDb } from '@/lib/localDb';
 import type { Profile, Team } from '@/types';
 import { UserRole, EmployeeStatus } from '@/types';
 import { MODULES, ROLE_DEFAULT_MODULES, serializeAccess, type ModuleId } from '@/lib/permissions';
@@ -277,17 +278,23 @@ export function EmployeeListPage() {
         teamsService.list(orgId),
       ]);
 
-      if (empRes.status === 'fulfilled' && empRes.value.data.length > 0) {
-        setEmployees(empRes.value.data);
+      if (empRes.status === 'fulfilled') {
+        setEmployees(empRes.value.data || []);
       } else {
-        setEmployees([]);
+        console.warn('Error fetching employees, falling back to local storage:', empRes.reason);
+        try {
+          const fallback = localDb.getAll<Profile>('profiles');
+          setEmployees(fallback || []);
+        } catch {
+          setEmployees([]);
+        }
       }
 
       if (teamRes.status === 'fulfilled') {
         setTeams(teamRes.value || []);
       }
     } catch (err) {
-      console.error('Error fetching employees:', err);
+      console.error('Error in Employee Directory loadData:', err);
     } finally {
       setLoading(false);
     }
@@ -515,21 +522,25 @@ export function EmployeeListPage() {
                       <TableCell>
                         <div>
                           <div className="font-semibold text-sm text-foreground">
-                            {emp.first_name} {emp.last_name}
+                            {emp.first_name || emp.last_name
+                              ? `${emp.first_name || ''} ${emp.last_name || ''}`.trim()
+                              : (emp as any).full_name || emp.username || (emp.email ? emp.email.split('@')[0] : 'Employee')}
                           </div>
-                          <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                            <Mail className="w-3 h-3" />
-                            {emp.email}
-                          </div>
+                          {emp.email && (
+                            <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                              <Mail className="w-3.5 h-3.5 shrink-0 text-muted-foreground/80" />
+                              <span>{emp.email}</span>
+                            </div>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="text-xs font-mono text-foreground font-medium">
-                          {emp.employee_id || '—'}
+                          {emp.employee_id || (emp.id ? `EMP-${emp.id.slice(0, 6)}` : '—')}
                         </div>
-                        {emp.username && (
+                        {(emp.username || emp.email) && (
                           <div className="text-[11px] text-muted-foreground">
-                            @{emp.username}
+                            @{emp.username || emp.email?.split('@')[0]}
                           </div>
                         )}
                       </TableCell>

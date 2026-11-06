@@ -14,14 +14,21 @@ import { Trophy, Zap, Award, Target, Flame, ArrowUpRight } from 'lucide-react';
 
 export function XPPage() {
   const { profile } = useAuth();
-  const userId = profile?.id || '44444444-4444-4444-4444-444444444441';
+  const userId = profile?.id;
 
   const [loading, setLoading] = useState(true);
-  const [totalXP, setTotalXP] = useState(2450);
+  const [totalXP, setTotalXP] = useState(0);
   const [transactions, setTransactions] = useState<XPTransaction[]>([]);
 
   useEffect(() => {
     async function load() {
+      if (!userId) {
+        setTotalXP(0);
+        setTransactions([]);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         const [xpVal, txRes] = await Promise.allSettled([
@@ -29,8 +36,10 @@ export function XPPage() {
           gamificationService.getXPTransactions(userId, 30),
         ]);
 
-        if (xpVal.status === 'fulfilled' && xpVal.value > 0) {
-          setTotalXP(xpVal.value);
+        if (xpVal.status === 'fulfilled') {
+          setTotalXP(xpVal.value || 0);
+        } else {
+          setTotalXP(0);
         }
 
         if (txRes.status === 'fulfilled' && txRes.value.length > 0) {
