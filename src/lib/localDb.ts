@@ -666,14 +666,16 @@ class LocalDatabase {
     const sales = getCollection<Sale>('sales').filter(s => s.organization_id === orgId && s.payment_status === PaymentStatus.PAID);
     const xpTx = getCollection<XPTransaction>('xp_transactions').filter(x => x.organization_id === orgId);
     const teams = getCollection<Team>('teams');
+    const targets = getCollection<any>('targets');
 
     const entries: LeaderboardEntry[] = profiles.map(rep => {
       const repSales = sales.filter(s => s.user_id === rep.id);
       const repRevenue = repSales.reduce((sum, s) => sum + (Number(s.total) || 0), 0);
       const repXP = xpTx.filter(x => x.user_id === rep.id).reduce((sum, x) => sum + (Number(x.points) || 0), 0);
       const repTeam = teams.find(t => t.id === rep.team_id);
-      const targetQuota = 500000;
-      const targetAttainment = Math.round((repRevenue / targetQuota) * 100);
+      const repTarget = targets.find((t: any) => t.user_id === rep.id && t.is_active);
+      const targetQuota = repTarget ? Number(repTarget.target_value || repTarget.target_amount) : 0;
+      const targetAttainment = targetQuota > 0 ? Math.round((repRevenue / targetQuota) * 100) : 0;
 
       return {
         rank: 0,

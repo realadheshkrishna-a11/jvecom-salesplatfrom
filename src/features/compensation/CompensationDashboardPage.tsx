@@ -28,8 +28,8 @@ export function CompensationDashboardPage() {
       try {
         setLoading(true);
         const [cRes, bRes] = await Promise.allSettled([
-          commissionsService.listRecords(orgId, { pageSize: 1000 }),
-          bonusesService.listRecords(orgId, { pageSize: 1000 }),
+          commissionsService.getRecords(orgId, { pageSize: 1000 }),
+          bonusesService.getRecords(orgId, { pageSize: 1000 }),
         ]);
 
         if (cancelled) return;

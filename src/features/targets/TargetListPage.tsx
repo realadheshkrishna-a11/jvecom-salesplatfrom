@@ -41,7 +41,7 @@ export function TargetListPage() {
   const [targets, setTargets] = useState<Target[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const form = useForm<TargetInput>({
+  const form = useForm<any>({
     resolver: zodResolver(targetSchema),
     defaultValues: defaultTargetValues,
   });

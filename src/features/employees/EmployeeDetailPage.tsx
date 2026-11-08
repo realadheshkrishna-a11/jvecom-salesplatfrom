@@ -61,7 +61,7 @@ export function EmployeeDetailPage() {
     }
     teamsService
       .getById(employee.team_id)
-      .then((t) => !cancelled && setTeamName(t.name))
+      .then((t) => !cancelled && setTeamName(t?.name || null))
       .catch(() => !cancelled && setTeamName(null));
     return () => {
       cancelled = true;
