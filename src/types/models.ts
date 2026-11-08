@@ -75,11 +75,16 @@ export interface Team {
   description: string | null;
   manager_id: string | null;
   status: TeamStatus;
+  team_type?: string;
+  target_value?: number;
+  target_type?: string;
+  target_period?: string;
   created_at: string;
   updated_at: string;
   // Joined
   manager?: Profile;
   member_count?: number;
+  members?: Profile[];
 }
 
 export interface TeamMember {

@@ -28,10 +28,36 @@ export function getInitials(firstName: string, lastName: string): string {
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 }
 
-export function generateEmployeeId(): string {
-  const prefix = 'EMP';
-  const num = Math.floor(Math.random() * 9000) + 1000;
-  return `${prefix}${num}`;
+// -----------------------------------------------------------------------------
+// Employee IDs — sequential: EMP-100, EMP-101, EMP-102, ...
+// -----------------------------------------------------------------------------
+export const EMPLOYEE_ID_PREFIX = 'EMP-';
+export const EMPLOYEE_ID_START = 100;
+/** Legacy random IDs were 6 digits (e.g. EMP-482913); they are ignored when finding the next number. */
+const EMPLOYEE_ID_SEQUENCE_CEILING = 100000;
+
+/** Returns the sequence number of an ID like "EMP-104", or null if it is not a sequential ID. */
+export function parseEmployeeNumber(id: string | null | undefined): number | null {
+  if (!id) return null;
+  const match = /^EMP-?([1-9]\d*)$/i.exec(id.trim());
+  if (!match) return null;
+  const n = parseInt(match[1], 10);
+  return n >= EMPLOYEE_ID_START && n < EMPLOYEE_ID_SEQUENCE_CEILING ? n : null;
+}
+
+/** Formats a sequence number as an employee ID, e.g. 100 -> "EMP-100". */
+export function formatEmployeeId(n: number): string {
+  return `${EMPLOYEE_ID_PREFIX}${n}`;
+}
+
+/** Next free sequential employee ID given the IDs already in use (starts at EMP-100). */
+export function nextEmployeeId(existingIds: Iterable<string | null | undefined>): string {
+  let max = EMPLOYEE_ID_START - 1;
+  for (const id of existingIds) {
+    const n = parseEmployeeNumber(id);
+    if (n !== null && n > max) max = n;
+  }
+  return formatEmployeeId(max + 1);
 }
 
 export function truncate(str: string, length: number): string {

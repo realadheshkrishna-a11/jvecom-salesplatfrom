@@ -121,7 +121,7 @@ export function CustomerDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           title="Customer Lifetime Value (LTV)"
-          value={formatCurrency(lifetimeValue || 65000)}
+          value={formatCurrency(lifetimeValue)}
           icon={<IndianRupee className="w-5 h-5" />}
           variant="success"
         />
@@ -133,8 +133,8 @@ export function CustomerDetailPage() {
         />
         <StatCard
           title="Acquisition Source"
-          value={customer.lead_source || 'Inbound Website'}
-          description="High conversion channel"
+          value={customer.lead_source || 'Direct'}
+          description="Acquisition channel"
           variant="default"
         />
       </div>

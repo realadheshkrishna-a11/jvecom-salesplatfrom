@@ -102,13 +102,13 @@ export function AuditLogPage() {
         />
         <StatCard
           title="Security Actions"
-          value={logs.filter(l => String(l.action).includes('LOGIN') || String(l.action).includes('ROLE')).length || 4}
+          value={logs.filter(l => String(l.action).includes('LOGIN') || String(l.action).includes('ROLE')).length}
           icon={<Lock className="h-5 w-5 text-indigo-500" />}
           description="Authentication & permissions"
         />
         <StatCard
           title="Commercial Mutations"
-          value={logs.filter(l => l.entity_type === EntityType.SALE || l.entity_type === EntityType.COMMISSION).length || 8}
+          value={logs.filter(l => l.entity_type === EntityType.SALE || l.entity_type === EntityType.COMMISSION).length}
           icon={<CheckCircle2 className="h-5 w-5 text-emerald-500" />}
           description="Sales & commission events"
         />

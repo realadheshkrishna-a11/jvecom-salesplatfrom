@@ -29,13 +29,12 @@ export function ReportsPage() {
   const loadReport = async () => {
     try {
       setLoading(true);
-      if (reportType === 'sales') {
-        const data = await reportsService.getSalesReport(orgId);
-        setSalesData(data || []);
-      } else {
-        const data = await reportsService.getEmployeePerformanceReport(orgId);
-        setRepData(data || []);
-      }
+      const [sales, reps] = await Promise.all([
+        reportsService.getSalesReport(orgId),
+        reportsService.getEmployeePerformanceReport(orgId),
+      ]);
+      setSalesData(sales || []);
+      setRepData(reps || []);
     } catch (err) {
       console.error('Error generating report:', err);
     } finally {
@@ -45,7 +44,7 @@ export function ReportsPage() {
 
   useEffect(() => {
     loadReport();
-  }, [orgId, reportType]);
+  }, [orgId]);
 
   const handleExportCSV = () => {
     if (reportType === 'sales') {
@@ -84,28 +83,27 @@ export function ReportsPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Audited Revenue"
-          value={formatCurrency(totalSalesRev || 3100000)}
+          value={formatCurrency(totalSalesRev)}
           icon={<DollarSign className="h-5 w-5 text-primary" />}
-          trend={{ value: 18.2, isPositive: true }}
           description="Verified closed contracts"
         />
         <StatCard
           title="Executed Invoices"
-          value={totalDeals || 61}
+          value={totalDeals}
           icon={<FileText className="h-5 w-5 text-emerald-500" />}
           description="Total commercial orders"
         />
         <StatCard
           title="Average Deal Size"
-          value={formatCurrency(aov || 50819)}
+          value={formatCurrency(aov)}
           icon={<TrendingUp className="h-5 w-5 text-indigo-500" />}
           description="Average transaction size"
         />
         <StatCard
           title="Active Closer Reps"
-          value="4 Reps"
+          value={`${repData.length} Reps`}
           icon={<Users className="h-5 w-5 text-amber-500" />}
-          description="100% quota tracked"
+          description="Reps with tracked performance"
         />
       </div>
 

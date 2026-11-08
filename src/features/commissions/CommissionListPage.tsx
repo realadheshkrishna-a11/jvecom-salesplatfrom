@@ -152,7 +152,6 @@ export function CommissionListPage() {
           title="Total Accrued"
           value={formatCurrency(totalAccrued)}
           icon={<DollarSign className="h-5 w-5 text-primary" />}
-          trend={{ value: 14.8, isPositive: true }}
           description="Cumulative deal commission"
         />
         <StatCard

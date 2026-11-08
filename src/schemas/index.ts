@@ -69,6 +69,12 @@ export const teamSchema = z.object({
   name: z.string().min(1, 'Team name is required'),
   description: z.string().optional(),
   manager_id: z.string().optional(),
+  team_type: z.string().optional(),
+  target_value: z.coerce.number().optional(),
+  target_type: z.string().optional(),
+  target_period: z.string().optional(),
+  status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
+  member_ids: z.array(z.string()).optional(),
 });
 export type TeamInput = z.infer<typeof teamSchema>;
 

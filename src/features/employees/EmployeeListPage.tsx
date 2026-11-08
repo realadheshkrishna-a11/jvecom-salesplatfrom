@@ -7,6 +7,7 @@ import { localDb } from '@/lib/localDb';
 import type { Profile, Team } from '@/types';
 import { UserRole, EmployeeStatus } from '@/types';
 import { MODULES, ROLE_DEFAULT_MODULES, serializeAccess, type ModuleId } from '@/lib/permissions';
+import { nextEmployeeId } from '@/lib/utils';
 
 export const SIDE_PANEL_FUNCTIONS = MODULES;
 import { PageHeader } from '@/components/common/PageHeader';
@@ -183,10 +184,8 @@ This automated invitation was sent by ${orgName} via SalesOS.`;
   return { html, text };
 }
 
-function generateEmployeeId(): string {
-  const prefix = 'EMP';
-  const num = Math.floor(100000 + Math.random() * 900000);
-  return `${prefix}-${num}`;
+function computeNextEmployeeId(list: Profile[]): string {
+  return nextEmployeeId(list.map((p) => p.employee_id));
 }
 
 function generatePassword(): string {
@@ -251,7 +250,7 @@ export function EmployeeListPage() {
       last_name: '',
       email: '',
       username: '',
-      employee_id: generateEmployeeId(),
+      employee_id: 'EMP-100',
       password: generatePassword(),
       role: UserRole.SALES_REP,
       team_id: '',
@@ -382,7 +381,7 @@ export function EmployeeListPage() {
         last_name: '',
         email: '',
         username: '',
-        employee_id: generateEmployeeId(),
+        employee_id: computeNextEmployeeId(employees),
         password: generatePassword(),
         role: UserRole.SALES_REP,
         team_id: '',
@@ -418,7 +417,7 @@ export function EmployeeListPage() {
   const handleDialogOpen = (open: boolean) => {
     setIsDialogOpen(open);
     if (open) {
-      const newEmpId = generateEmployeeId();
+      const newEmpId = computeNextEmployeeId(employees);
       const newPassword = generatePassword();
       const defaultRole = UserRole.SALES_REP;
       const defaults = ROLE_DEFAULT_MODULES[defaultRole] || MODULES.map(m => m.id);
@@ -536,7 +535,7 @@ export function EmployeeListPage() {
                       </TableCell>
                       <TableCell>
                         <div className="text-xs font-mono text-foreground font-medium">
-                          {emp.employee_id || (emp.id ? `EMP-${emp.id.slice(0, 6)}` : '—')}
+                          {emp.employee_id || '—'}
                         </div>
                         {(emp.username || emp.email) && (
                           <div className="text-[11px] text-muted-foreground">
@@ -674,8 +673,8 @@ export function EmployeeListPage() {
                   variant="outline"
                   size="icon"
                   className="shrink-0"
-                  title="Regenerate User ID"
-                  onClick={() => form.setValue('employee_id', generateEmployeeId(), { shouldValidate: true })}
+                  title="Recalculate User ID"
+                  onClick={() => form.setValue('employee_id', computeNextEmployeeId(employees), { shouldValidate: true })}
                 >
                   <RefreshCw className="w-4 h-4" />
                 </Button>

@@ -9,6 +9,7 @@ import { saveLocalCredential, removeLocalCredential } from '@/lib/localCredentia
 import type { Profile, Team, Organization, PaginatedResponse } from '@/types';
 import { UserRole, EmployeeStatus } from '@/types';
 import type { EmployeeInput } from '@/schemas';
+import { nextEmployeeId } from '@/lib/utils';
 
 interface EmployeeFilters {
   search?: string;
@@ -50,7 +51,7 @@ export const employeesService = {
           first_name: firstName,
           last_name: lastName,
           username: p.username || (email ? email.split('@')[0] : 'employee'),
-          employee_id: p.employee_id || (p.id ? `EMP-${p.id.slice(0, 6)}` : null),
+          employee_id: p.employee_id || null,
           role: p.role || UserRole.SALES_REP,
           status: p.status || EmployeeStatus.ACTIVE,
           access_only: p.access_only || 'ALL',
@@ -112,7 +113,7 @@ export const employeesService = {
                 email: inv.email,
                 phone: inv.phone || null,
                 username: inv.email ? inv.email.split('@')[0] : 'employee',
-                employee_id: inv.employee_id_str || `EMP-${(inv.id || '').slice(0, 6)}`,
+                employee_id: inv.employee_id_str || null,
                 role: (inv.role as UserRole) || UserRole.SALES_REP,
                 team_id: inv.team_id || null,
                 manager_id: inv.manager_id || null,
@@ -144,14 +145,15 @@ export const employeesService = {
         const key = (lp.email || lp.id).toLowerCase();
         const existing = profileMap.get(key);
         if (existing) {
+          // Cloud record is the source of truth; local copy only fills gaps
           profileMap.set(key, {
-            ...existing,
             ...lp,
-            first_name: lp.first_name || existing.first_name,
-            last_name: lp.last_name || existing.last_name,
-            access_only: lp.access_only || existing.access_only || 'ALL',
-            employee_id: lp.employee_id || existing.employee_id,
-            username: lp.username || existing.username,
+            ...existing,
+            first_name: existing.first_name || lp.first_name,
+            last_name: existing.last_name || lp.last_name,
+            access_only: existing.access_only || lp.access_only || 'ALL',
+            employee_id: existing.employee_id || lp.employee_id,
+            username: existing.username || lp.username,
           });
         } else {
           profileMap.set(key, {
@@ -217,6 +219,18 @@ export const employeesService = {
       pageSize,
       totalPages: Math.ceil(total / pageSize) || 1,
     };
+  },
+
+  /** All employee IDs currently in use (cloud profiles, invitations and local cache). */
+  async getUsedEmployeeIds(orgId: string): Promise<string[]> {
+    const res = await this.list(orgId, { pageSize: 100000 });
+    return (res.data || []).map(p => p.employee_id).filter((v): v is string => !!v);
+  },
+
+  /** Next sequential employee ID for this organization: EMP-100, EMP-101, ... */
+  async getNextEmployeeId(orgId: string): Promise<string> {
+    const used = await this.getUsedEmployeeIds(orgId);
+    return nextEmployeeId(used);
   },
 
   async getById(id: string): Promise<Profile> {
@@ -425,7 +439,7 @@ export const employeesService = {
       email: normalizedEmail,
       phone: input.phone || null,
       username: input.username || normalizedEmail.split('@')[0],
-      employee_id: input.employee_id || `EMP-${Date.now().toString().slice(-4)}`,
+      employee_id: input.employee_id || nextEmployeeId(localDb.getAll<Profile>('profiles').map(p => p.employee_id)),
       role: (input.role as UserRole) || UserRole.SALES_REP,
       team_id: input.team_id || null,
       manager_id: input.manager_id || null,
@@ -458,20 +472,86 @@ export const employeesService = {
     return this.invite(orgId, input);
   },
 
+  /**
+   * Updates an employee's profile (details, role, team, manager, access, status).
+   * Writes to Supabase (profiles + matching invitation record) and keeps the
+   * local cache in sync so the change is reflected immediately everywhere.
+   */
   async update(id: string, updates: Partial<Profile>): Promise<Profile> {
+    // Strip joined/relational fields that are not real columns
+    const { team: _team, manager: _manager, organization: _org, ...rest } = updates as Profile;
+    void _team; void _manager; void _org;
+    const clean: Partial<Profile> = { ...rest, updated_at: new Date().toISOString() };
+
+    // Local cache writer. list() merges local profiles over remote ones, so the
+    // local copy must always be kept in sync after a successful save.
+    const updateLocal = (): Profile | null => {
+      try {
+        if (localDb.getById<Profile>('profiles', id)) {
+          return localDb.update<Profile>('profiles', id, clean);
+        }
+      } catch (localErr) {
+        console.warn('[employeesService] Local profile update notice:', localErr);
+      }
+      return null;
+    };
+
     if (isLocalStorageMode()) {
-      return localDb.update<Profile>('profiles', id, updates);
+      const localOnly = updateLocal();
+      if (!localOnly) throw new Error('Employee not found');
+      return localOnly;
     }
 
+    // 1. Remote profile — must succeed before anything else is changed
     const { data, error } = await supabase
       .from('profiles')
-      .update(updates)
+      .update(clean)
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
-    return data as unknown as Profile;
+    if (error) {
+      if (error.code === '23505') {
+        throw new Error('That User ID or email is already used by another employee. Please choose a different one.');
+      }
+      if (error.code === '42501') {
+        throw new Error('You do not have permission to edit this employee. Only organization admins can edit other employees.');
+      }
+      throw new Error(error.message || 'Could not save employee changes.');
+    }
+
+    // 2. Keep the invitation record aligned (list() falls back to it for pending members)
+    let invitationUpdated = false;
+    const invitationFields: Record<string, unknown> = {};
+    if (clean.first_name !== undefined) invitationFields.first_name = clean.first_name;
+    if (clean.last_name !== undefined) invitationFields.last_name = clean.last_name;
+    if (clean.phone !== undefined) invitationFields.phone = clean.phone;
+    if (clean.role !== undefined) invitationFields.role = clean.role;
+    if (clean.team_id !== undefined) invitationFields.team_id = clean.team_id;
+    if (clean.manager_id !== undefined) invitationFields.manager_id = clean.manager_id;
+    if (clean.access_only !== undefined) invitationFields.access_only = clean.access_only;
+    if (clean.employee_id !== undefined) invitationFields.employee_id_str = clean.employee_id;
+    if (Object.keys(invitationFields).length > 0) {
+      try {
+        const { data: invRows } = await supabase
+          .from('employee_invitations')
+          .update(invitationFields)
+          .or(`user_id.eq.${id},id.eq.${id}`)
+          .select('id');
+        invitationUpdated = Array.isArray(invRows) && invRows.length > 0;
+      } catch (invErr) {
+        console.warn('[employeesService] Remote invitation update notice:', invErr);
+      }
+    }
+
+    // 3. Local cache
+    const localUpdated = updateLocal();
+
+    if (data) return data as unknown as Profile;
+    if (localUpdated) return localUpdated;
+    if (invitationUpdated) return { id, ...clean } as Profile;
+
+    throw new Error('Employee could not be updated. The record was not found or you do not have permission to edit it.');
   },
 
   async delete(id: string): Promise<void> {

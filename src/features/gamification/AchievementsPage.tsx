@@ -34,8 +34,7 @@ export function AchievementsPage() {
         if (userAchRes.status === 'fulfilled' && userAchRes.value.length > 0) {
           setUnlockedIds(new Set(userAchRes.value.map(ua => ua.achievement_id)));
         } else {
-          // Fallback unlocked badges for user demo
-          setUnlockedIds(new Set(['1', '2', '4']));
+          setUnlockedIds(new Set());
         }
       } catch (err) {
         console.error('Error loading achievements:', err);
