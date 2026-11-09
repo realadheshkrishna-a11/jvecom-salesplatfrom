@@ -291,18 +291,18 @@ export function EditEmployeeDialog({
           onValueChange={(v) => setSection(v as EditSection)}
           className="flex-1 min-h-0 flex flex-col"
         >
-          <TabsList className="grid grid-cols-4 w-full">
-            <TabsTrigger value="details" className="gap-1.5 text-xs sm:text-sm">
-              <User className="w-3.5 h-3.5" /> Details <TabDot s="details" />
+          <TabsList className="grid grid-cols-4 w-full h-9">
+            <TabsTrigger value="details" className="gap-1 text-[11px] sm:text-xs px-1 sm:px-2.5 truncate">
+              <User className="w-3.5 h-3.5 shrink-0" /> Details <TabDot s="details" />
             </TabsTrigger>
-            <TabsTrigger value="team" className="gap-1.5 text-xs sm:text-sm">
-              <Users className="w-3.5 h-3.5" /> Role &amp; Team <TabDot s="team" />
+            <TabsTrigger value="team" className="gap-1 text-[11px] sm:text-xs px-1 sm:px-2.5 truncate">
+              <Users className="w-3.5 h-3.5 shrink-0" /> Team <TabDot s="team" />
             </TabsTrigger>
-            <TabsTrigger value="access" className="gap-1.5 text-xs sm:text-sm">
-              <ShieldCheck className="w-3.5 h-3.5" /> Access <TabDot s="access" />
+            <TabsTrigger value="access" className="gap-1 text-[11px] sm:text-xs px-1 sm:px-2.5 truncate">
+              <ShieldCheck className="w-3.5 h-3.5 shrink-0" /> Access <TabDot s="access" />
             </TabsTrigger>
-            <TabsTrigger value="status" className="gap-1.5 text-xs sm:text-sm">
-              <Power className="w-3.5 h-3.5" /> Status <TabDot s="status" />
+            <TabsTrigger value="status" className="gap-1 text-[11px] sm:text-xs px-1 sm:px-2.5 truncate">
+              <Power className="w-3.5 h-3.5 shrink-0" /> Status <TabDot s="status" />
             </TabsTrigger>
           </TabsList>
 
@@ -593,15 +593,15 @@ export function EditEmployeeDialog({
           </div>
         </Tabs>
 
-        <DialogFooter className="pt-3 border-t border-border/60 sm:justify-between gap-2">
-          <span className="text-xs text-muted-foreground self-center">
+        <DialogFooter className="pt-3 border-t border-border/60 shrink-0 flex-col-reverse sm:flex-row sm:justify-between items-center gap-2">
+          <span className="text-xs text-muted-foreground text-center sm:text-left w-full sm:w-auto">
             {changeCount === 0 ? 'No unsaved changes' : `${changeCount} unsaved change${changeCount === 1 ? '' : 's'}`}
           </span>
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" disabled={saving} onClick={() => onOpenChange(false)}>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button type="button" variant="outline" className="flex-1 sm:flex-initial text-xs" disabled={saving} onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="button" disabled={saving || changeCount === 0} onClick={handleSave}>
+            <Button type="button" className="flex-1 sm:flex-initial text-xs font-semibold" disabled={saving || changeCount === 0} onClick={handleSave}>
               {saving ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>

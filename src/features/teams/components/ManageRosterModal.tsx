@@ -212,123 +212,226 @@ export function ManageRosterModal({
               </p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/40">
-                  <TableHead className="w-[280px]">Employee</TableHead>
-                  <TableHead>User ID</TableHead>
-                  <TableHead>Role & Specialization</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile Member Cards (sm:hidden) */}
+              <div className="sm:hidden divide-y divide-border/60">
                 {filteredMembers.map((emp) => {
                   const isSquadLead = team.manager_id === emp.id;
                   const isTelecalling = team.team_type?.toLowerCase().includes('telecall') || team.name.toLowerCase().includes('telecall');
                   const specialization = isSquadLead
                     ? 'Squad Leader / Manager'
                     : isTelecalling
-                      ? 'Lead Qualification Executive'
+                      ? 'Lead Qualification'
                       : 'Closing Specialist';
 
                   return (
-                    <TableRow key={emp.id} className="hover:bg-muted/30">
-                      <TableCell>
-                        <div className="flex items-center gap-3">
+                    <div key={emp.id} className="p-3 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
                           <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold text-xs flex items-center justify-center shrink-0">
                             {emp.first_name?.[0] || 'E'}{emp.last_name?.[0] || ''}
                           </div>
                           <div className="min-w-0">
-                            <div className="font-semibold text-sm text-foreground flex items-center gap-1.5 truncate">
+                            <div className="font-semibold text-xs text-foreground flex items-center gap-1.5 truncate">
                               {emp.first_name} {emp.last_name}
                               {isSquadLead && (
-                                <Badge variant="default" className="text-[9px] py-0 px-1 gap-1 h-4">
-                                  <Crown className="w-2.5 h-2.5 text-amber-300" /> Leader
+                                <Badge variant="default" className="text-[9px] py-0 px-1 gap-1 h-4 shrink-0">
+                                  <Crown className="w-2.5 h-2.5 text-amber-300" /> Lead
                                 </Badge>
                               )}
                             </div>
-                            <div className="text-xs text-muted-foreground flex items-center gap-2 truncate">
-                              <span>{emp.email}</span>
+                            <div className="text-[10px] text-muted-foreground truncate">
+                              {emp.email}
                             </div>
                           </div>
                         </div>
-                      </TableCell>
 
-                      <TableCell>
-                        <span className="font-mono text-xs font-semibold text-foreground">
-                          {emp.employee_id || '—'}
-                        </span>
-                      </TableCell>
-
-                      <TableCell>
-                        <div className="space-y-0.5">
-                          <div className="text-xs font-medium text-foreground">
-                            {specialization}
-                          </div>
+                        <div className="flex items-center gap-1 shrink-0">
                           <Badge
-                            variant={
-                              emp.role === UserRole.ORG_ADMIN ? 'default' :
-                              emp.role === UserRole.MANAGER ? 'secondary' : 'outline'
-                            }
-                            className="text-[10px]"
+                            variant={emp.status === 'ACTIVE' ? 'success' : 'warning'}
+                            className="text-[9px] px-1.5 py-0"
                           >
-                            {emp.role.replace(/_/g, ' ')}
+                            {emp.status || 'ACTIVE'}
                           </Badge>
-                        </div>
-                      </TableCell>
 
-                      <TableCell>
-                        <Badge
-                          variant={emp.status === 'ACTIVE' ? 'success' : 'warning'}
-                          className="text-[10px]"
-                        >
-                          {emp.status || 'ACTIVE'}
-                        </Badge>
-                      </TableCell>
-
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreVertical className="w-3.5 h-3.5" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-52">
-                            <DropdownMenuLabel className="text-xs">Member Actions</DropdownMenuLabel>
-                            
-                            <DropdownMenuItem asChild>
-                              <Link to={`/employees/${emp.id}`} className="cursor-pointer">
-                                <ExternalLink className="w-3.5 h-3.5" /> View Full Profile
-                              </Link>
-                            </DropdownMenuItem>
-
-                            {!isSquadLead && (
-                              <DropdownMenuItem onClick={() => handleSetLeader(emp.id)}>
-                                <Crown className="w-3.5 h-3.5 text-amber-500" /> Make Squad Leader
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+                                <MoreVertical className="w-3.5 h-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-52">
+                              <DropdownMenuLabel className="text-xs">Member Actions</DropdownMenuLabel>
+                              <DropdownMenuItem asChild>
+                                <Link to={`/employees/${emp.id}`} className="cursor-pointer">
+                                  <ExternalLink className="w-3.5 h-3.5" /> View Full Profile
+                                </Link>
                               </DropdownMenuItem>
-                            )}
+                              {!isSquadLead && (
+                                <DropdownMenuItem onClick={() => handleSetLeader(emp.id)}>
+                                  <Crown className="w-3.5 h-3.5 text-amber-500" /> Make Squad Leader
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem onClick={() => setTransferUserId(emp.id)}>
+                                <ArrowRightLeft className="w-3.5 h-3.5" /> Transfer to Another Squad
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => handleRemove(emp.id)}
+                                className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                              >
+                                <UserMinus className="w-3.5 h-3.5" /> Remove from Squad
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
 
-                            <DropdownMenuItem onClick={() => setTransferUserId(emp.id)}>
-                              <ArrowRightLeft className="w-3.5 h-3.5" /> Transfer to Another Squad
-                            </DropdownMenuItem>
-
-                            <DropdownMenuSeparator />
-
-                            <DropdownMenuItem
-                              onClick={() => handleRemove(emp.id)}
-                              className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
-                            >
-                              <UserMinus className="w-3.5 h-3.5" /> Remove from Squad
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
+                      <div className="flex items-center gap-2 flex-wrap text-[11px] pt-1">
+                        <Badge
+                          variant={
+                            emp.role === UserRole.ORG_ADMIN ? 'default' :
+                            emp.role === UserRole.MANAGER ? 'secondary' : 'outline'
+                          }
+                          className="text-[9px]"
+                        >
+                          {emp.role.replace(/_/g, ' ')}
+                        </Badge>
+                        <span className="text-muted-foreground text-[10px]">
+                          {specialization}
+                        </span>
+                        {emp.employee_id && (
+                          <span className="font-mono text-muted-foreground text-[10px] ml-auto">
+                            {emp.employee_id}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   );
                 })}
-              </TableBody>
-            </Table>
+              </div>
+
+              {/* Desktop Member Table (hidden sm:block) */}
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40">
+                      <TableHead className="w-[280px]">Employee</TableHead>
+                      <TableHead>User ID</TableHead>
+                      <TableHead>Role & Specialization</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredMembers.map((emp) => {
+                      const isSquadLead = team.manager_id === emp.id;
+                      const isTelecalling = team.team_type?.toLowerCase().includes('telecall') || team.name.toLowerCase().includes('telecall');
+                      const specialization = isSquadLead
+                        ? 'Squad Leader / Manager'
+                        : isTelecalling
+                          ? 'Lead Qualification Executive'
+                          : 'Closing Specialist';
+
+                      return (
+                        <TableRow key={emp.id} className="hover:bg-muted/30">
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold text-xs flex items-center justify-center shrink-0">
+                                {emp.first_name?.[0] || 'E'}{emp.last_name?.[0] || ''}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-semibold text-sm text-foreground flex items-center gap-1.5 truncate">
+                                  {emp.first_name} {emp.last_name}
+                                  {isSquadLead && (
+                                    <Badge variant="default" className="text-[9px] py-0 px-1 gap-1 h-4">
+                                      <Crown className="w-2.5 h-2.5 text-amber-300" /> Leader
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="text-xs text-muted-foreground flex items-center gap-2 truncate">
+                                  <span>{emp.email}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <span className="font-mono text-xs font-semibold text-foreground">
+                              {emp.employee_id || '—'}
+                            </span>
+                          </TableCell>
+
+                          <TableCell>
+                            <div className="space-y-0.5">
+                              <div className="text-xs font-medium text-foreground">
+                                {specialization}
+                              </div>
+                              <Badge
+                                variant={
+                                  emp.role === UserRole.ORG_ADMIN ? 'default' :
+                                  emp.role === UserRole.MANAGER ? 'secondary' : 'outline'
+                                }
+                                className="text-[10px]"
+                              >
+                                {emp.role.replace(/_/g, ' ')}
+                              </Badge>
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <Badge
+                              variant={emp.status === 'ACTIVE' ? 'success' : 'warning'}
+                              className="text-[10px]"
+                            >
+                              {emp.status || 'ACTIVE'}
+                            </Badge>
+                          </TableCell>
+
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreVertical className="w-3.5 h-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-52">
+                                <DropdownMenuLabel className="text-xs">Member Actions</DropdownMenuLabel>
+                                
+                                <DropdownMenuItem asChild>
+                                  <Link to={`/employees/${emp.id}`} className="cursor-pointer">
+                                    <ExternalLink className="w-3.5 h-3.5" /> View Full Profile
+                                  </Link>
+                                </DropdownMenuItem>
+
+                                {!isSquadLead && (
+                                  <DropdownMenuItem onClick={() => handleSetLeader(emp.id)}>
+                                    <Crown className="w-3.5 h-3.5 text-amber-500" /> Make Squad Leader
+                                  </DropdownMenuItem>
+                                )}
+
+                                <DropdownMenuItem onClick={() => setTransferUserId(emp.id)}>
+                                  <ArrowRightLeft className="w-3.5 h-3.5" /> Transfer to Another Squad
+                                </DropdownMenuItem>
+
+                                <DropdownMenuSeparator />
+
+                                <DropdownMenuItem
+                                  onClick={() => handleRemove(emp.id)}
+                                  className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                                >
+                                  <UserMinus className="w-3.5 h-3.5" /> Remove from Squad
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </div>
 

@@ -87,23 +87,24 @@ export function EditTeamModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="sm:max-w-xl max-h-[90dvh] flex flex-col overflow-hidden p-4 sm:p-6">
+        <DialogHeader className="shrink-0 pb-1">
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Users className="w-5 h-5 text-primary" />
             Edit Squad &mdash; {team.name}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs">
             Update squad details, assigned leadership, target benchmarks, and operational status.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleFormSubmit} className="space-y-4 py-2 overflow-y-auto pr-1 flex-1">
-          {errorMsg && (
-            <div className="p-3 text-xs rounded-lg bg-destructive/10 text-destructive border border-destructive/20">
-              {errorMsg}
-            </div>
-          )}
+        <form onSubmit={handleFormSubmit} className="flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
+          <div className="flex-1 overflow-y-auto space-y-4 py-2 pr-1">
+            {errorMsg && (
+              <div className="p-3 text-xs rounded-lg bg-destructive/10 text-destructive border border-destructive/20">
+                {errorMsg}
+              </div>
+            )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -219,13 +220,14 @@ export function EditTeamModal({
                 />
               </div>
             </div>
+            </div>
           </div>
 
-          <DialogFooter className="pt-3 border-t border-border/60">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <DialogFooter className="pt-3 border-t border-border/60 shrink-0 flex-col-reverse sm:flex-row gap-2 mt-2">
+            <Button type="button" variant="outline" className="w-full sm:w-auto text-xs" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting || !name.trim()}>
+            <Button type="submit" className="w-full sm:w-auto text-xs font-semibold" disabled={isSubmitting || !name.trim()}>
               {isSubmitting ? 'Saving Changes...' : 'Save Changes'}
             </Button>
           </DialogFooter>

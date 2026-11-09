@@ -499,109 +499,193 @@ export function EmployeeListPage() {
       ) : (
         <Card className="border-border/60">
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>User ID / Username</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Team</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Allowed Access</TableHead>
-                  <TableHead>Joined</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredEmployees.map((emp) => {
-                  const accessTokens = (emp.access_only || 'ALL').split(',').map(s => s.trim().toLowerCase());
-                  const isFull = !emp.access_only || emp.access_only === 'ALL' || accessTokens.length >= MODULES.length;
-                  return (
-                    <TableRow key={emp.id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-semibold text-sm text-foreground">
-                            {emp.first_name || emp.last_name
-                              ? `${emp.first_name || ''} ${emp.last_name || ''}`.trim()
-                              : (emp as any).full_name || emp.username || (emp.email ? emp.email.split('@')[0] : 'Employee')}
+            {/* Mobile Employee Cards (md:hidden) */}
+            <div className="md:hidden divide-y divide-border/60">
+              {filteredEmployees.map((emp) => {
+                const accessTokens = (emp.access_only || 'ALL').split(',').map(s => s.trim().toLowerCase());
+                const isFull = !emp.access_only || emp.access_only === 'ALL' || accessTokens.length >= MODULES.length;
+                const teamName = (emp.team as any)?.name || teams.find(t => t.id === emp.team_id)?.name || 'Unassigned';
+
+                return (
+                  <div key={emp.id} className="p-3.5 space-y-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-sm text-foreground truncate">
+                          {emp.first_name || emp.last_name
+                            ? `${emp.first_name || ''} ${emp.last_name || ''}`.trim()
+                            : (emp as any).full_name || emp.username || (emp.email ? emp.email.split('@')[0] : 'Employee')}
+                        </div>
+                        {emp.email && (
+                          <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5 truncate">
+                            <Mail className="w-3.5 h-3.5 shrink-0 text-muted-foreground/80" />
+                            <span className="truncate">{emp.email}</span>
                           </div>
-                          {emp.email && (
-                            <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                              <Mail className="w-3.5 h-3.5 shrink-0 text-muted-foreground/80" />
-                              <span>{emp.email}</span>
+                        )}
+                      </div>
+
+                      <Badge
+                        variant={emp.status === EmployeeStatus.ACTIVE ? 'success' : 'warning'}
+                        className="text-[10px] shrink-0"
+                      >
+                        {emp.status || 'ACTIVE'}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap text-xs">
+                      <Badge
+                        variant={
+                          emp.role === UserRole.ORG_ADMIN ? 'default' :
+                          emp.role === UserRole.MANAGER ? 'secondary' : 'outline'
+                        }
+                        className="text-[10px]"
+                      >
+                        {(emp.role ? String(emp.role).replace(/_/g, ' ') : 'Sales Rep')}
+                      </Badge>
+
+                      <span className="px-2 py-0.5 rounded-md bg-muted text-foreground/80 text-[11px] font-medium border border-border/40">
+                        {teamName}
+                      </span>
+
+                      {emp.employee_id && (
+                        <span className="font-mono text-muted-foreground text-[11px]">
+                          {emp.employee_id}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-border/40 text-xs">
+                      <span className="text-[11px] text-muted-foreground">
+                        {isFull ? 'Full Access' : `${accessTokens.length} modules`}
+                      </span>
+
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" className="h-7 text-xs px-2.5" asChild>
+                          <Link to={`/employees/${emp.id}`}>
+                            Profile
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          title="Delete Employee"
+                          onClick={() => handleDeleteEmployee(emp.id, `${emp.first_name} ${emp.last_name}`)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Employee Table (hidden md:block) */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Employee</TableHead>
+                    <TableHead>User ID / Username</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Team</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Allowed Access</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredEmployees.map((emp) => {
+                    const accessTokens = (emp.access_only || 'ALL').split(',').map(s => s.trim().toLowerCase());
+                    const isFull = !emp.access_only || emp.access_only === 'ALL' || accessTokens.length >= MODULES.length;
+                    return (
+                      <TableRow key={emp.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-semibold text-sm text-foreground">
+                              {emp.first_name || emp.last_name
+                                ? `${emp.first_name || ''} ${emp.last_name || ''}`.trim()
+                                : (emp as any).full_name || emp.username || (emp.email ? emp.email.split('@')[0] : 'Employee')}
+                            </div>
+                            {emp.email && (
+                              <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                                <Mail className="w-3.5 h-3.5 shrink-0 text-muted-foreground/80" />
+                                <span>{emp.email}</span>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-xs font-mono text-foreground font-medium">
+                            {emp.employee_id || '—'}
+                          </div>
+                          {(emp.username || emp.email) && (
+                            <div className="text-[11px] text-muted-foreground">
+                              @{emp.username || emp.email?.split('@')[0]}
                             </div>
                           )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-xs font-mono text-foreground font-medium">
-                          {emp.employee_id || '—'}
-                        </div>
-                        {(emp.username || emp.email) && (
-                          <div className="text-[11px] text-muted-foreground">
-                            @{emp.username || emp.email?.split('@')[0]}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            emp.role === UserRole.ORG_ADMIN ? 'default' :
-                            emp.role === UserRole.MANAGER ? 'secondary' : 'outline'
-                          }
-                          className="text-[11px]"
-                        >
-                          {(emp.role ? String(emp.role).replace(/_/g, ' ') : 'Sales Rep')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm font-medium">
-                        {(emp.team as any)?.name || teams.find(t => t.id === emp.team_id)?.name || 'Unassigned'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={emp.status === EmployeeStatus.ACTIVE ? 'success' : 'warning'}
-                          className="text-[10px]"
-                        >
-                          {emp.status || 'ACTIVE'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {isFull ? (
-                          <Badge variant="outline" className="text-[10px] text-primary border-primary/30">
-                            Full Access
-                          </Badge>
-                        ) : (
-                          <span className="text-xs text-muted-foreground font-mono">
-                            {accessTokens.length} modules
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {emp.created_at ? new Date(emp.created_at).toLocaleDateString() : 'N/A'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/employees/${emp.id}`} className="text-xs text-primary font-medium">
-                              Profile
-                            </Link>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                            title="Delete Employee"
-                            onClick={() => handleDeleteEmployee(emp.id, `${emp.first_name} ${emp.last_name}`)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              emp.role === UserRole.ORG_ADMIN ? 'default' :
+                              emp.role === UserRole.MANAGER ? 'secondary' : 'outline'
+                            }
+                            className="text-[11px]"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                            {(emp.role ? String(emp.role).replace(/_/g, ' ') : 'Sales Rep')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm font-medium">
+                          {(emp.team as any)?.name || teams.find(t => t.id === emp.team_id)?.name || 'Unassigned'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={emp.status === EmployeeStatus.ACTIVE ? 'success' : 'warning'}
+                            className="text-[10px]"
+                          >
+                            {emp.status || 'ACTIVE'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {isFull ? (
+                            <Badge variant="outline" className="text-[10px] text-primary border-primary/30">
+                              Full Access
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground font-mono">
+                              {accessTokens.length} modules
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {emp.created_at ? new Date(emp.created_at).toLocaleDateString() : 'N/A'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button variant="ghost" size="sm" asChild>
+                              <Link to={`/employees/${emp.id}`} className="text-xs text-primary font-medium">
+                                Profile
+                              </Link>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                              title="Delete Employee"
+                              onClick={() => handleDeleteEmployee(emp.id, `${emp.first_name} ${emp.last_name}`)}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       )}

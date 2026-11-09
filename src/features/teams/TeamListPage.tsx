@@ -437,20 +437,20 @@ export function TeamListPage() {
         {/* ================= TAB 1: TEAMS & SQUADS ================= */}
         <TabsContent value="teams" className="space-y-4 mt-0">
           {/* Search, Filter & View Controls */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
             <div className="relative flex-1 w-full">
               <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-muted-foreground" />
               <Input
                 placeholder="Search squad by name, specialization, or scope..."
-                className="pl-9 h-9 text-xs bg-card"
+                className="pl-9 h-9 text-xs bg-card w-full"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
               <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
-                <SelectTrigger className="w-32 sm:w-36 h-9 text-xs bg-card">
+                <SelectTrigger className="w-full sm:w-36 h-9 text-xs bg-card">
                   <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
                 <SelectContent>
@@ -461,7 +461,7 @@ export function TeamListPage() {
               </Select>
 
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-36 sm:w-44 h-9 text-xs bg-card">
+                <SelectTrigger className="w-full sm:w-44 h-9 text-xs bg-card">
                   <SelectValue placeholder="All Types" />
                 </SelectTrigger>
                 <SelectContent>
@@ -475,7 +475,7 @@ export function TeamListPage() {
 
               <Button
                 size="sm"
-                className="gap-1.5 h-9 text-xs font-semibold shrink-0"
+                className="col-span-2 sm:col-span-1 gap-1.5 h-9 text-xs font-semibold shrink-0"
                 onClick={() => setIsCreateOpen(true)}
               >
                 <Plus className="w-3.5 h-3.5" /> Create New Team

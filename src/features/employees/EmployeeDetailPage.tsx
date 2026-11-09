@@ -146,14 +146,14 @@ export function EmployeeDetailPage() {
   return (
     <div className="space-y-6 max-w-4xl">
       {/* Top back bar & Action */}
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" asChild>
-          <Link to="/employees" className="gap-2 text-muted-foreground hover:text-foreground">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <Button variant="ghost" size="sm" asChild className="w-fit -ml-2 text-muted-foreground hover:text-foreground">
+          <Link to="/employees" className="gap-2 text-xs sm:text-sm">
             <ArrowLeft className="w-4 h-4" /> Back to Employee Directory
           </Link>
         </Button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-end sm:self-auto">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="sm" className="gap-1.5">

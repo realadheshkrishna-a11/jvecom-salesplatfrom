@@ -242,42 +242,42 @@ export function TeamDetailsModal({
         </div>
 
         {/* Action Footer */}
-        <DialogFooter className="pt-3 border-t border-border/60 flex-col sm:flex-row gap-2 justify-between">
-          <div className="flex items-center gap-1.5">
+        <DialogFooter className="pt-3 border-t border-border/60 shrink-0 flex-col sm:flex-row gap-2 justify-between">
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 w-full sm:w-auto">
             {isAdmin && (
               <>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-xs gap-1.5"
+                  className="text-xs gap-1.5 justify-center"
                   onClick={() => {
                     onOpenChange(false);
                     onToggleStatus(team);
                   }}
                 >
                   <Power className="w-3.5 h-3.5" />
-                  {team.status === 'ACTIVE' ? 'Pause Squad' : 'Activate Squad'}
+                  {team.status === 'ACTIVE' ? 'Pause' : 'Activate'}
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-xs text-destructive hover:bg-destructive/10 hover:border-destructive/40 gap-1.5"
+                  className="text-xs text-destructive hover:bg-destructive/10 hover:border-destructive/40 gap-1.5 justify-center"
                   onClick={() => {
                     onOpenChange(false);
                     onDelete(team);
                   }}
                 >
-                  <Trash2 className="w-3.5 h-3.5" /> Delete Squad
+                  <Trash2 className="w-3.5 h-3.5" /> Delete
                 </Button>
               </>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
             <Button
               variant="outline"
               size="sm"
-              className="text-xs"
+              className="text-xs justify-center"
               onClick={() => {
                 onOpenChange(false);
                 onEdit(team);
@@ -287,7 +287,7 @@ export function TeamDetailsModal({
             </Button>
             <Button
               size="sm"
-              className="text-xs"
+              className="text-xs justify-center"
               onClick={() => {
                 onOpenChange(false);
                 onManageRoster(team);

@@ -29,12 +29,12 @@ export function TopNav({ breadcrumbs = [] }: TopNavProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-[72px] items-center gap-4 border-b border-border/70 bg-background/90 px-5 backdrop-blur lg:px-8">
+    <header className="sticky top-0 z-30 flex h-16 sm:h-[72px] items-center gap-2 sm:gap-4 border-b border-border/70 bg-background/90 px-3 sm:px-5 lg:px-8 backdrop-blur">
       {/* Breadcrumbs / Page Title */}
-      <div className="flex items-center gap-1 text-sm text-muted-foreground flex-1 pl-12 lg:pl-0">
-        <span className="text-foreground font-semibold tracking-[-0.02em] text-sm">SalesOS</span>
-        <ChevronRight className="h-3.5 w-3.5" />
-        <span className="text-muted-foreground font-medium text-xs">
+      <div className="flex items-center gap-1 text-sm text-muted-foreground flex-1 pl-11 lg:pl-0 min-w-0">
+        <span className="text-foreground font-semibold tracking-[-0.02em] text-xs sm:text-sm truncate">SalesOS</span>
+        <ChevronRight className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
+        <span className="text-muted-foreground font-medium text-[11px] sm:text-xs truncate">
           {(profile?.role ? String(profile.role).replace(/_/g, ' ') : 'Sales')} Workspace
         </span>
       </div>
