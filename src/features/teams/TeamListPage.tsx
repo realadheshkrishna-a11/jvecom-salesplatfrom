@@ -301,18 +301,41 @@ export function TeamListPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <PageHeader
-        title="Sales Teams &amp; Squads"
-        subtitle="Structure sales reps into specialized units: Telecalling lead qualification, sales closing, and regional squads."
-      >
-        <div className="flex items-center gap-2">
-          {isAdmin && (
-            <Button size="sm" className="gap-2 shadow-xs" onClick={() => setIsCreateOpen(true)}>
-              <Plus className="w-4 h-4" /> Create Team
-            </Button>
-          )}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-border/70">
+        <div>
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="text-xl sm:text-[1.7rem] font-bold tracking-tight text-foreground flex items-center gap-2">
+              <Users className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+              Sales Teams &amp; Squads
+            </h1>
+            {/* Mobile Top-Right Button */}
+            <div className="sm:hidden">
+              <Button
+                size="sm"
+                className="gap-1.5 shadow-sm font-semibold text-xs h-8 px-3"
+                onClick={() => setIsCreateOpen(true)}
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>New Team</span>
+              </Button>
+            </div>
+          </div>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            Structure sales reps into specialized units: Telecalling lead qualification, sales closing, and regional squads.
+          </p>
         </div>
-      </PageHeader>
+
+        {/* Desktop / Tablet Top-Right Button */}
+        <div className="hidden sm:flex items-center gap-2 shrink-0">
+          <Button
+            className="gap-2 shadow-sm font-semibold h-9 px-4 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground"
+            onClick={() => setIsCreateOpen(true)}
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <span>Create New Team</span>
+          </Button>
+        </div>
+      </div>
 
       {/* 1. Team Dashboard (Stats Grid) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -367,8 +390,8 @@ export function TeamListPage() {
 
       {/* Main Section Navigation Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-5">
-        <div className="border-b border-border/70 pb-1">
-          <TabsList className="bg-transparent h-9 p-0 gap-2 border-b-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/70 pb-1">
+          <TabsList className="bg-transparent h-9 p-0 gap-1.5 sm:gap-2 border-b-0 overflow-x-auto max-w-full justify-start">
             <TabsTrigger
               value="teams"
               className="gap-2 text-xs data-[state=active]:bg-muted data-[state=active]:text-foreground font-semibold px-3 py-1.5"
@@ -400,6 +423,15 @@ export function TeamListPage() {
               <FileText className="w-3.5 h-3.5" /> Team Reports
             </TabsTrigger>
           </TabsList>
+
+          <Button
+            size="sm"
+            variant="outline"
+            className="hidden md:inline-flex items-center gap-1.5 h-8 text-xs font-semibold shrink-0"
+            onClick={() => setIsCreateOpen(true)}
+          >
+            <Plus className="w-3.5 h-3.5 text-primary" /> Create New Team
+          </Button>
         </div>
 
         {/* ================= TAB 1: TEAMS & SQUADS ================= */}
@@ -416,9 +448,9 @@ export function TeamListPage() {
               />
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
               <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
-                <SelectTrigger className="w-36 h-9 text-xs bg-card">
+                <SelectTrigger className="w-32 sm:w-36 h-9 text-xs bg-card">
                   <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
                 <SelectContent>
@@ -429,7 +461,7 @@ export function TeamListPage() {
               </Select>
 
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-44 h-9 text-xs bg-card">
+                <SelectTrigger className="w-36 sm:w-44 h-9 text-xs bg-card">
                   <SelectValue placeholder="All Types" />
                 </SelectTrigger>
                 <SelectContent>
@@ -440,6 +472,14 @@ export function TeamListPage() {
                   <SelectItem value="general">General</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Button
+                size="sm"
+                className="gap-1.5 h-9 text-xs font-semibold shrink-0"
+                onClick={() => setIsCreateOpen(true)}
+              >
+                <Plus className="w-3.5 h-3.5" /> Create New Team
+              </Button>
             </div>
           </div>
 
