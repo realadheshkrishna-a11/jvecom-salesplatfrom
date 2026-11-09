@@ -168,9 +168,34 @@ export const employeesService = {
 
     // 4. Enrich teams and managers
     let teams: Team[] = [];
-    try {
-      teams = localDb.getAll<Team>('teams');
-    } catch {}
+    if (!isLocalStorageMode()) {
+      try {
+        let teamQuery = supabase.from('teams').select('id, name');
+        if (orgId) {
+          teamQuery = teamQuery.or(`organization_id.eq.${orgId},organization_id.is.null`);
+        }
+        const { data: remoteTeams } = await teamQuery;
+        if (remoteTeams && Array.isArray(remoteTeams)) {
+          teams = remoteTeams as Team[];
+          remoteTeams.forEach((rt: any) => {
+            try {
+              if (localDb.getById<Team>('teams', rt.id)) {
+                localDb.update<Team>('teams', rt.id, rt);
+              } else {
+                localDb.insert<Team>('teams', rt);
+              }
+            } catch {}
+          });
+        }
+      } catch (tErr) {
+        console.warn('[employeesService] Remote teams enrichment notice:', tErr);
+      }
+    }
+    if (teams.length === 0) {
+      try {
+        teams = localDb.getAll<Team>('teams');
+      } catch {}
+    }
 
     let list = Array.from(profileMap.values())
       .filter(p => !isFakeProfile(p))
@@ -543,6 +568,30 @@ export const employeesService = {
         invitationUpdated = Array.isArray(invRows) && invRows.length > 0;
       } catch (invErr) {
         console.warn('[employeesService] Remote invitation update notice:', invErr);
+      }
+    }
+
+    // 2B. Keep team_members audit history in sync
+    if (clean.team_id !== undefined && !isLocalStorageMode()) {
+      try {
+        if (clean.team_id) {
+          const org = (data as any)?.organization_id || (clean as any).organization_id;
+          if (org) {
+            await supabase.from('team_members').insert({
+              organization_id: org,
+              team_id: clean.team_id,
+              user_id: id,
+            });
+          }
+        } else {
+          await supabase
+            .from('team_members')
+            .update({ left_at: new Date().toISOString() })
+            .eq('user_id', id)
+            .is('left_at', null);
+        }
+      } catch (tmErr) {
+        console.warn('[employeesService] Team members history notice:', tmErr);
       }
     }
 

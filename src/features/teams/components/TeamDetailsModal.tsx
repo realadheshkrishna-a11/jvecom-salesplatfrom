@@ -30,6 +30,7 @@ interface TeamDetailsModalProps {
   onOpenChange: (open: boolean) => void;
   team: Team | null;
   members: Profile[];
+  allEmployees?: Profile[];
   currentValue?: number;
   isAdmin: boolean;
   onEdit: (team: Team) => void;
@@ -43,6 +44,7 @@ export function TeamDetailsModal({
   onOpenChange,
   team,
   members,
+  allEmployees,
   currentValue,
   isAdmin,
   onEdit,
@@ -57,6 +59,7 @@ export function TeamDetailsModal({
   const targetVal = team.target_value ? Number(team.target_value) : 0;
   const currentVal = currentValue ?? 0;
   const progressPct = targetVal > 0 ? Math.min(100, Math.round((currentVal / targetVal) * 100)) : 0;
+  const leader = team.manager || (allEmployees || members).find((e) => e.id === team.manager_id);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -100,10 +103,10 @@ export function TeamDetailsModal({
                 </div>
                 <div className="min-w-0">
                   <div className="font-semibold text-xs text-foreground truncate">
-                    {team.manager ? `${team.manager.first_name} ${team.manager.last_name}` : 'Unassigned'}
+                    {leader ? `${leader.first_name || ''} ${leader.last_name || ''}`.trim() || leader.email : 'Unassigned'}
                   </div>
                   <div className="text-[10px] text-muted-foreground truncate">
-                    {team.manager?.email || 'No email'}
+                    {leader?.email || 'No email'}
                   </div>
                 </div>
               </div>

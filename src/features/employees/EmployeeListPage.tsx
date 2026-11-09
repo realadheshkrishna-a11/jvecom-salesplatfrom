@@ -555,7 +555,7 @@ export function EmployeeListPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm font-medium">
-                        {(emp.team as any)?.name || 'Unassigned'}
+                        {(emp.team as any)?.name || teams.find(t => t.id === emp.team_id)?.name || 'Unassigned'}
                       </TableCell>
                       <TableCell>
                         <Badge

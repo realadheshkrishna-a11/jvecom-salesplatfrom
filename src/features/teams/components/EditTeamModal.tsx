@@ -69,7 +69,7 @@ export function EditTeamModal({
         name: name.trim(),
         description: description.trim() || undefined,
         team_type: teamType,
-        manager_id: managerId === 'none' ? undefined : managerId,
+        manager_id: managerId === 'none' ? 'none' : managerId,
         status,
         target_value: targetValue ? Number(targetValue) : undefined,
         target_type: targetType,

@@ -497,6 +497,7 @@ export function TeamListPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {filteredTeams.map((team) => {
                 const { isTelecalling, targetVal, currentVal, progressPct, teamMembers } = getTeamProgress(team);
+                const leader = team.manager || employees.find((e) => e.id === team.manager_id);
 
                 return (
                   <Card
@@ -593,8 +594,8 @@ export function TeamListPage() {
                             <UserCheck className="w-3.5 h-3.5 text-primary" /> Squad Leader
                           </span>
                           <span className="font-semibold text-foreground truncate max-w-[150px]">
-                            {team.manager
-                              ? `${team.manager.first_name} ${team.manager.last_name}`
+                            {leader
+                              ? `${leader.first_name || ''} ${leader.last_name || ''}`.trim() || leader.email
                               : 'Unassigned'}
                           </span>
                         </div>
@@ -705,7 +706,7 @@ export function TeamListPage() {
       <ManageRosterModal
         open={!!rosterTeam}
         onOpenChange={(open) => !open && setRosterTeam(null)}
-        team={rosterTeam}
+        team={rosterTeam ? (teams.find((t) => t.id === rosterTeam.id) || rosterTeam) : null}
         allTeams={teams}
         allEmployees={employees}
         onAddMember={handleAddMember}
@@ -717,8 +718,9 @@ export function TeamListPage() {
       <TeamDetailsModal
         open={!!detailsTeam}
         onOpenChange={(open) => !open && setDetailsTeam(null)}
-        team={detailsTeam}
+        team={detailsTeam ? (teams.find((t) => t.id === detailsTeam.id) || detailsTeam) : null}
         members={employees.filter((e) => e.team_id === detailsTeam?.id)}
+        allEmployees={employees}
         currentValue={detailsTeam ? getTeamProgress(detailsTeam).currentVal : 0}
         isAdmin={isAdmin}
         onEdit={(t) => setEditingTeam(t)}
