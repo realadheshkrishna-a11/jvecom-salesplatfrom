@@ -4,7 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { localDb, isLocalStorageMode, generateUUID } from '@/lib/localDb';
+import { localDb, isLocalStorageMode, generateUUID, isFakeProfile } from '@/lib/localDb';
 import { saveLocalCredential, removeLocalCredential } from '@/lib/localCredentials';
 import type { Profile, Team, Organization, PaginatedResponse } from '@/types';
 import { UserRole, EmployeeStatus } from '@/types';
@@ -36,6 +36,7 @@ export const employeesService = {
     // 1. Fetch remote Supabase profiles if not forced local
     if (!isLocalStorageMode()) {
       const normalizeProfile = (p: any): Profile | null => {
+        if (isFakeProfile(p)) return null;
         const rawEmail = p.email || (p.full_name && p.full_name.includes('@') ? p.full_name : '');
         const email = rawEmail ? rawEmail.trim().toLowerCase() : '';
         const rawName = p.full_name && !p.full_name.includes('@') ? p.full_name.trim() : '';
@@ -103,6 +104,7 @@ export const employeesService = {
           .neq('status', 'REVOKED');
         if (invs && Array.isArray(invs)) {
           invs.forEach((inv: any) => {
+            if (isFakeProfile(inv)) return;
             const emailKey = (inv.email || '').toLowerCase();
             if (emailKey && !profileMap.has(emailKey)) {
               profileMap.set(emailKey, {
@@ -136,9 +138,7 @@ export const employeesService = {
     try {
       const localProfiles = localDb.getAll<Profile>('profiles');
       localProfiles.forEach(lp => {
-        const email = lp.email?.toLowerCase();
-        // Ignore any residual demo accounts
-        if (email === 'manager@jvecom.in' || email === 'rep@jvecom.in' || email === 'admin@jvecom.in' || lp.employee_id === 'MGR001' || lp.employee_id === 'REP001') {
+        if (isFakeProfile(lp)) {
           return;
         }
 
@@ -172,10 +172,12 @@ export const employeesService = {
       teams = localDb.getAll<Team>('teams');
     } catch {}
 
-    let list = Array.from(profileMap.values()).map(p => ({
-      ...p,
-      team: p.team || teams.find(t => t.id === p.team_id),
-    }));
+    let list = Array.from(profileMap.values())
+      .filter(p => !isFakeProfile(p))
+      .map(p => ({
+        ...p,
+        team: p.team || teams.find(t => t.id === p.team_id),
+      }));
 
     // 5. Apply filters
     if (search) {

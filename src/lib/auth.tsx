@@ -3,7 +3,7 @@ import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import type { Profile, Organization } from '@/types';
 import { UserRole, EmployeeStatus, OrgStatus } from '@/types';
-import { localDb } from './localDb';
+import { localDb, purgeLegacyFakeData, isFakeProfile } from './localDb';
 import { isLocalAuthEnabled, verifyLocalCredential } from './localCredentials';
 import { getAllowedModules, canAccessPath as canAccessPathFor, type ModuleId } from './permissions';
 
@@ -44,21 +44,9 @@ export const DEFAULT_ORGANIZATION: Organization = {
 
 export const DEMO_ACCOUNTS: DemoAccount[] = [];
 
-// Purge any legacy demo accounts from browser storage
+// Purge any legacy demo accounts and mock entities from browser storage
 if (typeof localStorage !== 'undefined') {
-  try {
-    const raw = localStorage.getItem('salesos_profiles');
-    if (raw) {
-      const profiles: Profile[] = JSON.parse(raw);
-      const filtered = profiles.filter(p => {
-        const email = p.email?.toLowerCase();
-        return email !== 'manager@jvecom.in' && email !== 'rep@jvecom.in' && email !== 'admin@jvecom.in' && p.employee_id !== 'MGR001' && p.employee_id !== 'REP001';
-      });
-      if (filtered.length !== profiles.length) {
-        localStorage.setItem('salesos_profiles', JSON.stringify(filtered));
-      }
-    }
-  } catch {}
+  purgeLegacyFakeData();
 }
 
 // =============================================================================

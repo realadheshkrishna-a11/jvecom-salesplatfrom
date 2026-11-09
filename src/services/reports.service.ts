@@ -51,7 +51,7 @@ export const reportsService = {
           Date: s.sale_date ? new Date(s.sale_date).toLocaleDateString() : '',
           Customer: cust ? `${cust.first_name} ${cust.last_name}` : 'Direct Customer',
           Salesperson: user ? `${user.first_name} ${user.last_name}` : 'Sales Rep',
-          Team: team?.name || 'Alpha Squad',
+          Team: team?.name || 'General',
           Subtotal: s.subtotal || s.total,
           Discount: s.discount || 0,
           Tax: s.tax || 0,

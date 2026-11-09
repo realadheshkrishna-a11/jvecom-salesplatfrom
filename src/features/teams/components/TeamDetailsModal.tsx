@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { Team, Profile } from '@/types';
+import { isFakeProfile } from '@/lib/localDb';
 import {
   Dialog,
   DialogContent,
@@ -51,6 +52,7 @@ export function TeamDetailsModal({
 }: TeamDetailsModalProps) {
   if (!team) return null;
 
+  const cleanMembers = (members || []).filter(m => !isFakeProfile(m));
   const isTelecalling = team.team_type?.toLowerCase().includes('telecall') || team.name.toLowerCase().includes('telecall');
   const targetVal = team.target_value ? Number(team.target_value) : 0;
   const currentVal = currentValue ?? 0;
@@ -182,7 +184,7 @@ export function TeamDetailsModal({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Assigned Reps ({members.length})
+                Assigned Reps ({cleanMembers.length})
               </span>
               <Button
                 variant="ghost"
@@ -198,12 +200,12 @@ export function TeamDetailsModal({
             </div>
 
             <div className="divide-y divide-border/60 rounded-xl border border-border/70 bg-card overflow-hidden">
-              {members.length === 0 ? (
+              {cleanMembers.length === 0 ? (
                 <div className="p-4 text-center text-xs text-muted-foreground">
                   No reps assigned to this squad yet.
                 </div>
               ) : (
-                members.map((emp) => (
+                cleanMembers.map((emp) => (
                   <div key={emp.id} className="p-2.5 flex items-center justify-between gap-3 text-xs">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-7 h-7 rounded-full bg-muted font-bold text-[11px] flex items-center justify-center text-foreground">

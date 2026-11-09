@@ -46,6 +46,7 @@ import {
   Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { isFakeProfile } from '@/lib/localDb';
 
 interface ManageRosterModalProps {
   open: boolean;
@@ -81,13 +82,17 @@ export function ManageRosterModal({
   // Active members of this team
   const members = useMemo(() => {
     if (!team) return [];
-    return allEmployees.filter(emp => emp.team_id === team.id || (team.manager_id === emp.id && !emp.team_id));
+    return allEmployees
+      .filter(emp => !isFakeProfile(emp))
+      .filter(emp => emp.team_id === team.id || (team.manager_id === emp.id && !emp.team_id));
   }, [team, allEmployees]);
 
   // Available employees who can be added to this team (unassigned or from other teams)
   const availableToAdd = useMemo(() => {
     if (!team) return [];
-    return allEmployees.filter(emp => emp.team_id !== team.id && team.manager_id !== emp.id);
+    return allEmployees
+      .filter(emp => !isFakeProfile(emp))
+      .filter(emp => emp.team_id !== team.id && team.manager_id !== emp.id);
   }, [team, allEmployees]);
 
   const filteredMembers = useMemo(() => {

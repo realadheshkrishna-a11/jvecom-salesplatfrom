@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, Shield, Target, Check, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { isFakeProfile } from '@/lib/localDb';
 
 interface CreateTeamModalProps {
   open: boolean;
@@ -94,15 +95,23 @@ export function CreateTeamModal({
     );
   };
 
+  const validEmployees = useMemo(() => {
+    return availableEmployees.filter(e => !isFakeProfile(e));
+  }, [availableEmployees]);
+
+  const validManagers = useMemo(() => {
+    return managers.filter(m => !isFakeProfile(m));
+  }, [managers]);
+
   const filteredEmployees = useMemo(() => {
-    if (!memberSearch.trim()) return availableEmployees;
+    if (!memberSearch.trim()) return validEmployees;
     const q = memberSearch.toLowerCase();
-    return availableEmployees.filter(e =>
+    return validEmployees.filter(e =>
       `${e.first_name || ''} ${e.last_name || ''} ${e.employee_id || ''} ${e.email || ''}`
         .toLowerCase()
         .includes(q)
     );
-  }, [availableEmployees, memberSearch]);
+  }, [validEmployees, memberSearch]);
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -245,7 +254,7 @@ export function CreateTeamModal({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">No Squad Leader (Unassigned)</SelectItem>
-                  {managers.map((m) => (
+                  {validManagers.map((m) => (
                     <SelectItem key={m.id} value={m.id}>
                       {`${m.first_name || ''} ${m.last_name || ''}`.trim() || m.email} ({m.role.replace(/_/g, ' ')})
                     </SelectItem>

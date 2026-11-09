@@ -4,6 +4,7 @@ import { teamsService } from '@/services/teams.service';
 import { employeesService } from '@/services/employees.service';
 import { leadsService } from '@/services/leads.service';
 import { salesService } from '@/services/sales.service';
+import { isFakeProfile } from '@/lib/localDb';
 import type { Team, Profile, Lead, Sale } from '@/types';
 import { UserRole } from '@/types';
 import type { TeamInput } from '@/schemas';
@@ -105,7 +106,7 @@ export function TeamListPage() {
         setTeams(teamsRes.value || []);
       }
       if (empRes.status === 'fulfilled') {
-        setEmployees(empRes.value.data || []);
+        setEmployees((empRes.value.data || []).filter(p => !isFakeProfile(p)));
       }
       if (leadsRes.status === 'fulfilled') {
         setLeads(leadsRes.value.data || []);

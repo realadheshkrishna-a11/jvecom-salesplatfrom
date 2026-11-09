@@ -3,7 +3,7 @@ import { useAuth } from '@/lib/auth';
 import { employeesService } from '@/services/employees.service';
 import { emailService } from '@/services/email.service';
 import { teamsService } from '@/services/teams.service';
-import { localDb } from '@/lib/localDb';
+import { localDb, isFakeProfile } from '@/lib/localDb';
 import type { Profile, Team } from '@/types';
 import { UserRole, EmployeeStatus } from '@/types';
 import { MODULES, ROLE_DEFAULT_MODULES, serializeAccess, type ModuleId } from '@/lib/permissions';
@@ -278,11 +278,11 @@ export function EmployeeListPage() {
       ]);
 
       if (empRes.status === 'fulfilled') {
-        setEmployees(empRes.value.data || []);
+        setEmployees((empRes.value.data || []).filter(p => !isFakeProfile(p)));
       } else {
         console.warn('Error fetching employees, falling back to local storage:', empRes.reason);
         try {
-          const fallback = localDb.getAll<Profile>('profiles');
+          const fallback = localDb.getAll<Profile>('profiles').filter(p => !isFakeProfile(p));
           setEmployees(fallback || []);
         } catch {
           setEmployees([]);

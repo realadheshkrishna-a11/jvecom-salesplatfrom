@@ -20,8 +20,12 @@ import {
 export function isLocalStorageMode(): boolean {
   try {
     const forced = typeof localStorage !== 'undefined' ? localStorage.getItem('salesos_db_mode') : null;
-    if (forced === 'local') return true;
     if (forced === 'supabase') return false;
+    // In production or on live jvecom domains, always connect to Supabase
+    if (typeof window !== 'undefined' && window.location.hostname.includes('jvecom')) {
+      return false;
+    }
+    if (forced === 'local') return true;
   } catch {}
 
   const url = import.meta.env.VITE_SUPABASE_URL || 'https://qkwxsiezhyarpcfnbjja.supabase.co';
@@ -34,6 +38,366 @@ export function isLocalStorageMode(): boolean {
 
 export function setStorageMode(mode: 'local' | 'supabase') {
   localStorage.setItem('salesos_db_mode', mode);
+}
+
+// ============================================================================
+// Fake / Demo Data Filters & Purge Engine
+// Permanently clears legacy mock data (e.g. Acme Learning, Suresh Iyer, etc.)
+// ============================================================================
+
+export function isFakeProfile(p: any): boolean {
+  if (!p) return true;
+  const email = (p.email || '').toLowerCase().trim();
+  const firstName = (p.first_name || '').toLowerCase().trim();
+  const lastName = (p.last_name || '').toLowerCase().trim();
+  const fullName = `${firstName} ${lastName}`.trim();
+  const empId = (p.employee_id || '').toUpperCase().trim();
+  const username = (p.username || '').toLowerCase().trim();
+  const id = String(p.id || '').toLowerCase().trim();
+
+  // Email domain checks
+  if (email.endsWith('@acmelearning.io') || email.endsWith('@example.com')) return true;
+  if (['manager@jvecom.in', 'rep@jvecom.in', 'admin@jvecom.in'].includes(email)) return true;
+
+  // Specific demo persona names
+  const demoNames = [
+    'suresh iyer',
+    'kavita menon',
+    'arjun nair',
+    'priya sharma',
+    'vikram seth',
+    'vikram malhotra',
+    'rajesh admin',
+    'rajesh kumar',
+    'pooja deshmukh',
+  ];
+  if (demoNames.includes(fullName)) return true;
+
+  // Demo employee IDs
+  const demoEmpIds = [
+    'EMP-001', 'EMP-002', 'EMP-003', 'EMP-004', 'EMP-005', 'EMP-006',
+    'EMP001', 'EMP002', 'EMP003', 'EMP004', 'EMP005', 'EMP006',
+    'MGR001', 'REP001',
+  ];
+  if (demoEmpIds.includes(empId)) return true;
+
+  // Demo usernames
+  const demoUsernames = [
+    'rajesh_admin', 'priya_sharma', 'vikram_seth', 'arjun_nair', 'kavita_menon',
+    'suresh_iyer', 'rajeshk', 'vikramm', 'arjunn', 'kavitam', 'sureshi', 'poojad'
+  ];
+  if (demoUsernames.includes(username)) return true;
+
+  // Demo deterministic UUID prefixes
+  if (
+    id === '22222222-2222-2222-2222-222222222222' ||
+    id.startsWith('33333333-3333-3333-3333-33333333333') ||
+    id.startsWith('44444444-4444-4444-4444-44444444444')
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+export function isFakeTeam(t: any): boolean {
+  if (!t) return true;
+  const name = (t.name || '').toLowerCase().trim();
+  const id = String(t.id || '').toLowerCase().trim();
+  if (name.includes('alpha squad') || name.includes('beta sharks')) return true;
+  if (id === '55555555-5555-5555-5555-555555555551' || id === '55555555-5555-5555-5555-555555555552') return true;
+  return false;
+}
+
+export function isFakeCustomer(c: any): boolean {
+  if (!c) return true;
+  const email = (c.email || '').toLowerCase().trim();
+  const fullName = `${c.first_name || ''} ${c.last_name || ''}`.toLowerCase().trim();
+  const id = String(c.id || '').toLowerCase().trim();
+  if (email.endsWith('@example.com') || email.endsWith('@acmelearning.io')) return true;
+  if (['rohan sharma', 'priya verma', 'amit patel', 'sneha reddy'].includes(fullName)) return true;
+  if (id.startsWith('77777777-7777-7777-7777-77777777777')) return true;
+  return false;
+}
+
+export function isFakeProduct(p: any): boolean {
+  if (!p) return true;
+  const sku = (p.sku || '').toUpperCase().trim();
+  const name = (p.name || '').toLowerCase().trim();
+  const id = String(p.id || '').toLowerCase().trim();
+  if (['SKU-PY-01', 'SKU-AI-02', 'SKU-WEB-03', 'SKU-DO-04', 'SKU-BI-04'].includes(sku)) return true;
+  if (
+    name.includes('python bootcamp') ||
+    name.includes('genai masterclass') ||
+    name.includes('executive web development') ||
+    name.includes('cloud & devops') ||
+    name.includes('business analytics with excel')
+  ) {
+    return true;
+  }
+  if (id.startsWith('66666666-6666-6666-6666-66666666666')) return true;
+  return false;
+}
+
+export function isFakeOrg(o: any): boolean {
+  if (!o) return true;
+  const name = (o.name || '').toLowerCase().trim();
+  const email = (o.email || '').toLowerCase().trim();
+  const website = (o.website || '').toLowerCase().trim();
+  if (name.includes('acme learning') || email.includes('acmelearning.io') || website.includes('acmelearning.io')) {
+    return true;
+  }
+  return false;
+}
+
+export function isFakeSale(s: any): boolean {
+  if (!s) return true;
+  const inv = (s.invoice_number || '').toUpperCase().trim();
+  const id = String(s.id || '').toLowerCase().trim();
+  if (inv.startsWith('INV-2026-003') || inv.startsWith('INV-2026-004')) return true;
+  if (id.startsWith('99999999-9999-9999-9999-99999999999')) return true;
+  return false;
+}
+
+export function isFakeLead(l: any): boolean {
+  if (!l) return true;
+  const id = String(l.id || '').toLowerCase().trim();
+  const custId = String(l.customer_id || '').toLowerCase().trim();
+  const prodId = String(l.product_id || '').toLowerCase().trim();
+  const notes = (l.notes || '').toLowerCase().trim();
+  if (id.startsWith('88888888-8888-8888-8888-88888888888')) return true;
+  if (custId.startsWith('77777777-7777-7777-7777-77777777777')) return true;
+  if (prodId.startsWith('66666666-6666-6666-6666-66666666666')) return true;
+  if (notes.includes('genai upskilling') || notes.includes('python career transition') || notes.includes('corporate powerbi')) return true;
+  return false;
+}
+
+export function purgeLegacyFakeData(): void {
+  if (typeof localStorage === 'undefined') return;
+
+  try {
+    // 1. Purge forced local mode if set
+    if (localStorage.getItem('salesos_db_mode') === 'local') {
+      localStorage.removeItem('salesos_db_mode');
+    }
+
+    // 2. Profiles
+    const rawProfiles = localStorage.getItem('salesos_profiles');
+    if (rawProfiles) {
+      try {
+        const parsed = JSON.parse(rawProfiles);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter(p => !isFakeProfile(p));
+          if (clean.length !== parsed.length) {
+            localStorage.setItem('salesos_profiles', JSON.stringify(clean));
+          }
+        }
+      } catch {}
+    }
+
+    // 3. Teams
+    const rawTeams = localStorage.getItem('salesos_teams');
+    if (rawTeams) {
+      try {
+        const parsed = JSON.parse(rawTeams);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter(t => !isFakeTeam(t));
+          if (clean.length !== parsed.length) {
+            localStorage.setItem('salesos_teams', JSON.stringify(clean));
+          }
+        }
+      } catch {}
+    }
+
+    // 4. Customers
+    const rawCust = localStorage.getItem('salesos_customers');
+    if (rawCust) {
+      try {
+        const parsed = JSON.parse(rawCust);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter(c => !isFakeCustomer(c));
+          if (clean.length !== parsed.length) {
+            localStorage.setItem('salesos_customers', JSON.stringify(clean));
+          }
+        }
+      } catch {}
+    }
+
+    // 5. Products
+    const rawProd = localStorage.getItem('salesos_products');
+    if (rawProd) {
+      try {
+        const parsed = JSON.parse(rawProd);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter(p => !isFakeProduct(p));
+          if (clean.length !== parsed.length) {
+            localStorage.setItem('salesos_products', JSON.stringify(clean));
+          }
+        }
+      } catch {}
+    }
+
+    // 6. Organization & Organizations
+    const rawOrg = localStorage.getItem('salesos_organization');
+    if (rawOrg) {
+      try {
+        const parsed = JSON.parse(rawOrg);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter(o => !isFakeOrg(o));
+          localStorage.setItem('salesos_organization', JSON.stringify(clean));
+        }
+      } catch {}
+    }
+    const rawOrgs = localStorage.getItem('salesos_organizations');
+    if (rawOrgs) {
+      try {
+        const parsed = JSON.parse(rawOrgs);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter(o => !isFakeOrg(o));
+          localStorage.setItem('salesos_organizations', JSON.stringify(clean));
+        }
+      } catch {}
+    }
+
+    // 7. Leads
+    const rawLeads = localStorage.getItem('salesos_leads');
+    if (rawLeads) {
+      try {
+        const parsed = JSON.parse(rawLeads);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter(l => !isFakeLead(l));
+          if (clean.length !== parsed.length) {
+            localStorage.setItem('salesos_leads', JSON.stringify(clean));
+          }
+        }
+      } catch {}
+    }
+
+    // 8. Sales & Sale Items
+    const rawSales = localStorage.getItem('salesos_sales');
+    if (rawSales) {
+      try {
+        const parsed = JSON.parse(rawSales);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter(s => !isFakeSale(s));
+          if (clean.length !== parsed.length) {
+            localStorage.setItem('salesos_sales', JSON.stringify(clean));
+          }
+        }
+      } catch {}
+    }
+    const rawSaleItems = localStorage.getItem('salesos_sale_items');
+    if (rawSaleItems) {
+      try {
+        const parsed = JSON.parse(rawSaleItems);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter((si: any) => !si.sale_id?.startsWith('99999999-9999-9999-9999-99999999999'));
+          if (clean.length !== parsed.length) {
+            localStorage.setItem('salesos_sale_items', JSON.stringify(clean));
+          }
+        }
+      } catch {}
+    }
+
+    // 9. Targets
+    const rawTargets = localStorage.getItem('salesos_targets');
+    if (rawTargets) {
+      try {
+        const parsed = JSON.parse(rawTargets);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter((t: any) =>
+            t.id !== 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' &&
+            t.id !== 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+          );
+          if (clean.length !== parsed.length) {
+            localStorage.setItem('salesos_targets', JSON.stringify(clean));
+          }
+        }
+      } catch {}
+    }
+
+    // 10. Notifications
+    const rawNotifs = localStorage.getItem('salesos_notifications');
+    if (rawNotifs) {
+      try {
+        const parsed = JSON.parse(rawNotifs);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter((n: any) =>
+            n.id !== 'notif-1' &&
+            n.id !== 'notif-2' &&
+            !(n.message || '').includes('INV-2026-0041') &&
+            !(n.message || '').includes('Abhijith Up approved')
+          );
+          if (clean.length !== parsed.length) {
+            localStorage.setItem('salesos_notifications', JSON.stringify(clean));
+          }
+        }
+      } catch {}
+    }
+
+    // 11. Audit Logs
+    const rawAudit = localStorage.getItem('salesos_audit_logs');
+    if (rawAudit) {
+      try {
+        const parsed = JSON.parse(rawAudit);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter((a: any) =>
+            a.id !== 'audit-1' &&
+            a.id !== 'audit-2' &&
+            a.actor_id !== '22222222-2222-2222-2222-222222222222' &&
+            !JSON.stringify(a.details || {}).includes('INV-2026-0041')
+          );
+          if (clean.length !== parsed.length) {
+            localStorage.setItem('salesos_audit_logs', JSON.stringify(clean));
+          }
+        }
+      } catch {}
+    }
+
+    // 12. Commission & Bonus Rules (legacy demo presets)
+    const rawComm = localStorage.getItem('salesos_commission_rules');
+    if (rawComm) {
+      try {
+        const parsed = JSON.parse(rawComm);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter((r: any) =>
+            r.id !== 'comm-1' &&
+            r.id !== 'comm-2' &&
+            r.name !== 'AI Accelerator Incentive' &&
+            r.name !== 'Standard Base Commission'
+          );
+          if (clean.length !== parsed.length) {
+            localStorage.setItem('salesos_commission_rules', JSON.stringify(clean));
+          }
+        }
+      } catch {}
+    }
+    const rawBonus = localStorage.getItem('salesos_bonus_rules');
+    if (rawBonus) {
+      try {
+        const parsed = JSON.parse(rawBonus);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter((b: any) =>
+            b.id !== 'bonus-1' &&
+            b.id !== 'bonus-2' &&
+            b.name !== 'Monthly Revenue Champion' &&
+            b.name !== 'Over-Target Accelerator' &&
+            b.name !== 'Top Deal Closer'
+          );
+          if (clean.length !== parsed.length) {
+            localStorage.setItem('salesos_bonus_rules', JSON.stringify(clean));
+          }
+        }
+      } catch {}
+    }
+  } catch (err) {
+    console.warn('[SalesOS] Error during legacy fake data purge:', err);
+  }
+}
+
+// Auto-run purge immediately on module load in browser
+if (typeof window !== 'undefined') {
+  purgeLegacyFakeData();
 }
 
 // Generate simple browser UUID
@@ -81,19 +445,7 @@ class LocalDatabase {
   public init() {
     if (typeof window !== 'undefined') {
       this.initialized = true;
-      try {
-        const raw = localStorage.getItem('salesos_profiles');
-        if (raw) {
-          const profiles = JSON.parse(raw);
-          const filtered = profiles.filter((p: any) => {
-            const email = p.email?.toLowerCase();
-            return email !== 'manager@jvecom.in' && email !== 'rep@jvecom.in' && email !== 'admin@jvecom.in' && p.employee_id !== 'MGR001' && p.employee_id !== 'REP001';
-          });
-          if (filtered.length !== profiles.length) {
-            localStorage.setItem('salesos_profiles', JSON.stringify(filtered));
-          }
-        }
-      } catch {}
+      purgeLegacyFakeData();
     }
   }
 
@@ -102,21 +454,36 @@ class LocalDatabase {
     const list = getCollection<T>(collectionKey);
     if (collectionKey === 'profiles') {
       return (list as any[])
-        .filter(p => {
-          const email = p.email?.toLowerCase();
-          return email !== 'manager@jvecom.in' && email !== 'rep@jvecom.in' && email !== 'admin@jvecom.in' && p.employee_id !== 'MGR001' && p.employee_id !== 'REP001';
-        })
+        .filter(p => !isFakeProfile(p))
         .map(p => ({
           ...p,
           role: p.role || UserRole.SALES_REP,
           status: p.status || EmployeeStatus.ACTIVE,
         })) as T[];
     }
+    if (collectionKey === 'teams') {
+      return (list as any[]).filter(t => !isFakeTeam(t)) as T[];
+    }
+    if (collectionKey === 'customers') {
+      return (list as any[]).filter(c => !isFakeCustomer(c)) as T[];
+    }
+    if (collectionKey === 'products') {
+      return (list as any[]).filter(p => !isFakeProduct(p)) as T[];
+    }
+    if (collectionKey === 'sales') {
+      return (list as any[]).filter(s => !isFakeSale(s)) as T[];
+    }
+    if (collectionKey === 'leads') {
+      return (list as any[]).filter(l => !isFakeLead(l)) as T[];
+    }
+    if (collectionKey === 'organization' || collectionKey === 'organizations') {
+      return (list as any[]).filter(o => !isFakeOrg(o)) as T[];
+    }
     return list;
   }
 
   public getById<T extends { id: string }>(collectionKey: string, id: string): T | undefined {
-    const list = getCollection<T>(collectionKey);
+    const list = this.getAll<T>(collectionKey);
     return list.find(item => item.id === id);
   }
 
@@ -167,8 +534,8 @@ class LocalDatabase {
 
   // Teams Specialized
   public getTeams(orgId: string): Team[] {
-    const teams = getCollection<Team>('teams').filter(t => t.organization_id === orgId);
-    const profiles = getCollection<Profile>('profiles');
+    const teams = this.getAll<Team>('teams').filter(t => t.organization_id === orgId);
+    const profiles = this.getAll<Profile>('profiles');
 
     return teams.map(t => {
       const manager = profiles.find(p => p.id === t.manager_id);
@@ -207,7 +574,7 @@ class LocalDatabase {
 
   // Products Specialized
   public getProducts(orgId: string, filters: { search?: string; status?: string } = {}): Product[] {
-    let list = getCollection<Product>('products').filter(p => p.organization_id === orgId);
+    let list = this.getAll<Product>('products').filter(p => p.organization_id === orgId);
     if (filters.status && filters.status !== 'ALL') {
       list = list.filter(p => p.status === filters.status);
     }
@@ -242,7 +609,7 @@ class LocalDatabase {
 
   // Customers Specialized
   public getCustomers(orgId: string, filters: { search?: string; status?: string } = {}): Customer[] {
-    let list = getCollection<Customer>('customers').filter(c => c.organization_id === orgId);
+    let list = this.getAll<Customer>('customers').filter(c => c.organization_id === orgId);
     if (filters.status && filters.status !== 'ALL') {
       list = list.filter(c => c.status === filters.status);
     }
@@ -283,10 +650,10 @@ class LocalDatabase {
 
   // Leads Specialized
   public getLeads(orgId: string, filters: { stage?: string; assigned_to?: string; search?: string } = {}): Lead[] {
-    let list = getCollection<Lead>('leads').filter(l => l.organization_id === orgId);
-    const customers = getCollection<Customer>('customers');
-    const profiles = getCollection<Profile>('profiles');
-    const products = getCollection<Product>('products');
+    let list = this.getAll<Lead>('leads').filter(l => l.organization_id === orgId);
+    const customers = this.getAll<Customer>('customers');
+    const profiles = this.getAll<Profile>('profiles');
+    const products = this.getAll<Product>('products');
 
     if (filters.stage) {
       list = list.filter(l => l.stage === filters.stage);
@@ -460,9 +827,9 @@ class LocalDatabase {
 
   // Sales & Order Qualification Engine
   public getSales(orgId: string, filters: { payment_status?: string; user_id?: string } = {}): Sale[] {
-    let list = getCollection<Sale>('sales').filter(s => s.organization_id === orgId);
-    const customers = getCollection<Customer>('customers');
-    const profiles = getCollection<Profile>('profiles');
+    let list = this.getAll<Sale>('sales').filter(s => s.organization_id === orgId);
+    const customers = this.getAll<Customer>('customers');
+    const profiles = this.getAll<Profile>('profiles');
     const saleItems = getCollection<SaleItem>('sale_items');
 
     if (filters.payment_status) {
