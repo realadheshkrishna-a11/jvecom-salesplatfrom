@@ -21,20 +21,23 @@ export function ReportsPage() {
   const orgId = organization?.id || '11111111-1111-1111-1111-111111111111';
 
   const [loading, setLoading] = useState(true);
-  const [reportType, setReportType] = useState<'sales' | 'rep_performance'>('sales');
+  const [reportType, setReportType] = useState<'sales' | 'rep_performance' | 'activity_incentives'>('sales');
   const [salesData, setSalesData] = useState<any[]>([]);
   const [repData, setRepData] = useState<any[]>([]);
+  const [activityIncentiveData, setActivityIncentiveData] = useState<any[]>([]);
   const [timeFilter, setTimeFilter] = useState('all');
 
   const loadReport = async () => {
     try {
       setLoading(true);
-      const [sales, reps] = await Promise.all([
+      const [sales, reps, actInc] = await Promise.all([
         reportsService.getSalesReport(orgId),
         reportsService.getEmployeePerformanceReport(orgId),
+        reportsService.getEmployeeActivityAndIncentiveReport(orgId),
       ]);
       setSalesData(sales || []);
       setRepData(reps || []);
+      setActivityIncentiveData(actInc || []);
     } catch (err) {
       console.error('Error generating report:', err);
     } finally {
@@ -49,8 +52,10 @@ export function ReportsPage() {
   const handleExportCSV = () => {
     if (reportType === 'sales') {
       reportsService.exportCSV(salesData, 'sales-revenue-report');
-    } else {
+    } else if (reportType === 'rep_performance') {
       reportsService.exportCSV(repData, 'employee-performance-scorecard');
+    } else {
+      reportsService.exportCSV(activityIncentiveData, 'employee-activity-conversion-incentives');
     }
   };
 
@@ -127,6 +132,14 @@ export function ReportsPage() {
                 className="text-xs gap-1.5"
               >
                 <Users className="h-3.5 w-3.5" /> Rep Performance Scorecard
+              </Button>
+              <Button
+                variant={reportType === 'activity_incentives' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setReportType('activity_incentives')}
+                className="text-xs gap-1.5"
+              >
+                <TrendingUp className="h-3.5 w-3.5 text-blue-500" /> Activity, Conversion &amp; Incentives
               </Button>
             </div>
 
@@ -205,6 +218,77 @@ export function ReportsPage() {
                       </TableCell>
                       <TableCell className="text-right font-bold text-sm text-foreground">
                         {formatCurrency(Number(row.Total))}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )
+          ) : reportType === 'activity_incentives' ? (
+            activityIncentiveData.length === 0 ? (
+              <EmptyState
+                title="No activity or incentive data found"
+                description="Call attempts, handovers, and conversion attribution records will appear here."
+                icon={<TrendingUp className="h-10 w-10 text-muted-foreground" />}
+              />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Employee Name</TableHead>
+                    <TableHead>Role &amp; Team</TableHead>
+                    <TableHead className="text-center">Calls Logged (KPI)</TableHead>
+                    <TableHead className="text-center">Leads Handled</TableHead>
+                    <TableHead className="text-center">Qualified Handovers</TableHead>
+                    <TableHead className="text-center">Direct Conversions</TableHead>
+                    <TableHead className="text-center">Conv. Rate</TableHead>
+                    <TableHead className="text-right">Direct-Sale Inc.</TableHead>
+                    <TableHead className="text-right">Handoff Inc.</TableHead>
+                    <TableHead className="text-right">Total Incentive</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {activityIncentiveData.map((row, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell>
+                        <div className="font-semibold text-xs text-foreground">{row.Employee}</div>
+                        <div className="text-[10px] text-muted-foreground">{row.Email}</div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-[10px] mb-0.5">
+                          {row.Team}
+                        </Badge>
+                        <div className="text-[10px] text-muted-foreground capitalize">
+                          {String(row.Role || '').replace(/_/g, ' ').toLowerCase()}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center font-semibold text-xs text-foreground">
+                        {row.CallsLogged}
+                      </TableCell>
+                      <TableCell className="text-center text-xs text-muted-foreground">
+                        {row.LeadsHandled}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="default" className="text-[10px]">
+                          {row.QualifiedHandovers}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="success" className="text-[10px]">
+                          {row.DirectConversions}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center text-xs font-semibold text-foreground">
+                        {row.ConversionRate}
+                      </TableCell>
+                      <TableCell className="text-right text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                        {formatCurrency(row.DirectSaleIncentive)}
+                      </TableCell>
+                      <TableCell className="text-right text-xs text-blue-600 dark:text-blue-400 font-medium">
+                        {formatCurrency(row.QualifiedHandoffIncentive)}
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-sm text-foreground">
+                        {formatCurrency(row.TotalIncentiveEarned)}
                       </TableCell>
                     </TableRow>
                   ))}

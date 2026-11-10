@@ -48,13 +48,26 @@ export enum CustomerStatus {
 
 // Lead Stages
 export enum LeadStage {
-  NEW = 'NEW',
+  NEW = 'NEW', // New Lead
+  ASSIGNED = 'ASSIGNED', // Assigned to Telecaller
+  ATTEMPTED = 'ATTEMPTED', // Attempted / No Answer
+  CONNECTED = 'CONNECTED', // Connected / Qualification
+  // Path A: Direct Sale
+  READY_TO_BUY = 'READY_TO_BUY', // Ready to Buy – Direct
+  PAYMENT_PENDING = 'PAYMENT_PENDING', // Payment Pending
+  CONVERTED = 'CONVERTED', // Converted – Payment Verified
+  // Path B: Sales Handover
+  QUALIFIED_HANDOVER = 'QUALIFIED_HANDOVER', // Qualified – Sales Handover
+  SALES_CONTACTED = 'SALES_CONTACTED', // Sales Contacted
+  DEMO_CONSULTATION = 'DEMO_CONSULTATION', // Consultation / Demo
+  FOLLOW_UP_REQUIRED = 'FOLLOW_UP_REQUIRED', // Follow-up Required
+  LOST = 'LOST', // Lost
+  // Backward compatibility
   CONTACTED = 'CONTACTED',
   QUALIFIED = 'QUALIFIED',
   DEMO = 'DEMO',
   NEGOTIATION = 'NEGOTIATION',
   WON = 'WON',
-  LOST = 'LOST',
 }
 
 // Lead Activity Types

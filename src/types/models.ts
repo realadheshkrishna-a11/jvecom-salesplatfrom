@@ -151,6 +151,16 @@ export interface Customer {
 // Leads / CRM
 // ============================================================================
 
+export interface LeadTransferHistoryItem {
+  id?: string;
+  from_user_id: string | null;
+  to_user_id: string;
+  from_user_name?: string;
+  to_user_name?: string;
+  transferred_at: string;
+  notes?: string;
+}
+
 export interface Lead {
   id: string;
   organization_id: string;
@@ -161,20 +171,46 @@ export interface Lead {
   lead_source_id: string | null;
   lead_source: string | null;
   source?: string | null;
+  campaign?: string | null;
   title?: string | null;
   expected_value: number;
   probability: number;
   expected_close_date: string | null;
   stage: LeadStage;
   next_follow_up_date: string | null;
+  next_action?: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
-  // Calculated
+
+  // Mandatory CRM Fields
+  target_market?: 'India' | 'UAE' | 'Other' | string | null;
+  service_package?: string | null;
+  previous_owner_id?: string | null;
+  transfer_history?: LeadTransferHistoryItem[];
+  call_attempts?: number;
+  last_contact_date?: string | null;
+  last_contact_outcome?: string | null;
+  qualification_need?: string | null;
+  qualification_experience?: string | null;
+  qualification_budget_readiness?: string | null;
+  qualification_intended_start_date?: string | null;
+  lost_reason?: string | null;
+  payment_link_sent_at?: string | null;
+  payment_link_package?: string | null;
+  payment_link_amount?: number | null;
+  payment_verification_ref?: string | null;
+  conversion_attribution_user_id?: string | null;
+  incentive_category?: 'DIRECT_SALE' | 'QUALIFIED_HANDOFF' | 'KPI_ACTIVITY' | 'NONE' | string | null;
+  handover_notes?: string | null;
+  handover_timestamp?: string | null;
+
+  // Calculated & Joined
   expected_revenue?: number; // expected_value * probability
-  // Joined
   customer?: Customer;
   assigned_salesperson?: Profile;
+  previous_owner?: Profile;
+  conversion_attribution_user?: Profile;
   product?: Product;
   team?: Team;
 }

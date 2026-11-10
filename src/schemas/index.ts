@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { z } from 'zod';
+import { LeadStage } from '@/types/enums';
 
 // ============================================================================
 // Auth
@@ -120,10 +121,21 @@ export const leadSchema = z.object({
   assigned_to: z.string().optional(),
   product_id: z.string().optional(),
   lead_source: z.string().optional(),
+  campaign: z.string().optional(),
+  target_market: z.string().optional(),
+  service_package: z.string().optional(),
+  next_action: z.string().optional(),
+  qualification_need: z.string().optional(),
+  qualification_experience: z.string().optional(),
+  qualification_budget_readiness: z.string().optional(),
+  qualification_intended_start_date: z.string().optional(),
+  payment_verification_ref: z.string().optional(),
+  handover_notes: z.string().optional(),
+  incentive_category: z.string().optional(),
   expected_value: z.coerce.number().min(0, 'Expected value must be 0 or more'),
   probability: z.coerce.number().min(0).max(100, 'Probability must be between 0 and 100'),
   expected_close_date: z.string().optional(),
-  stage: z.enum(['NEW', 'CONTACTED', 'QUALIFIED', 'DEMO', 'NEGOTIATION', 'WON', 'LOST']).default('NEW'),
+  stage: z.nativeEnum(LeadStage as any).or(z.string()).default('NEW'),
   notes: z.string().optional(),
 });
 export type LeadInput = z.infer<typeof leadSchema>;

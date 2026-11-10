@@ -75,6 +75,23 @@ export const notificationsService = {
     entity_type?: string;
     entity_id?: string;
   }): Promise<Notification> {
+    if (isLocalStorageMode()) {
+      const newNotif = {
+        id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        organization_id: orgId,
+        user_id: userId,
+        type: payload.type,
+        title: payload.title,
+        message: payload.message,
+        link_url: payload.link_url || null,
+        entity_type: payload.entity_type || null,
+        entity_id: payload.entity_id || null,
+        is_read: false,
+        created_at: new Date().toISOString(),
+      };
+      return localDb.insert<Notification>('notifications', newNotif as any);
+    }
+
     const { data, error } = await supabase
       .from('notifications')
       .insert({

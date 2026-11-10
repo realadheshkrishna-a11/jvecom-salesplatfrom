@@ -5,9 +5,11 @@
 
 import { supabase } from '@/lib/supabase';
 import { localDb, isLocalStorageMode } from '@/lib/localDb';
-import type { Lead, LeadActivity, FollowUp, LeadSource, PaginatedResponse } from '@/types';
-import { LeadStage, FollowUpStatus, LeadActivityType } from '@/types';
+import type { Lead, LeadActivity, FollowUp, LeadSource, PaginatedResponse, Profile } from '@/types';
+import { LeadStage, FollowUpStatus, LeadActivityType, NotificationType, CustomerStatus } from '@/types';
 import type { LeadInput, LeadActivityInput, FollowUpInput } from '@/schemas';
+import { notificationsService } from './notifications.service';
+import { customersService } from './customers.service';
 
 interface LeadFilters {
   search?: string;
@@ -421,5 +423,243 @@ export const leadsService = {
 
     if (error) throw error;
     return data as unknown as LeadSource;
+  },
+
+  // ==========================================================================
+  // CRM Automation Engine Methods
+  // ==========================================================================
+
+  // Automation 1 & 2: Get unassigned leads to alert manager
+  async getUnassignedLeads(orgId: string): Promise<Lead[]> {
+    if (isLocalStorageMode()) {
+      return localDb.getLeads(orgId).filter(l => !l.assigned_to);
+    }
+    const { data, error } = await supabase
+      .from('leads')
+      .select('*, customer:customers(*)')
+      .eq('organization_id', orgId)
+      .is('assigned_to', null)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data || []) as unknown as Lead[];
+  },
+
+  // Automation 1: Round-robin telecaller assignment
+  async assignRoundRobin(orgId: string, leadId: string): Promise<{ lead: Lead; assignedUser: Profile }> {
+    // 1. Fetch available profiles
+    let profiles: Profile[] = [];
+    if (isLocalStorageMode()) {
+      profiles = localDb.getAll<Profile>('profiles').filter(p => !orgId || p.organization_id === orgId);
+    } else {
+      const { data } = await supabase.from('profiles').select('*').eq('organization_id', orgId);
+      profiles = (data || []) as unknown as Profile[];
+    }
+
+    if (profiles.length === 0) {
+      throw new Error('No available telecallers/reps found in the organization.');
+    }
+
+    // 2. Select next available telecaller
+    // Round-robin index based on total leads count modulo available profiles
+    const allLeads = isLocalStorageMode() ? localDb.getLeads(orgId) : (await this.getAllForBoard(orgId));
+    const assignedIndex = allLeads.length % profiles.length;
+    const targetUser = profiles[assignedIndex] || profiles[0];
+
+    const currentLead = await this.getById(leadId);
+    const prevOwnerId = currentLead.assigned_to;
+
+    const transferItem = {
+      from_user_id: prevOwnerId,
+      to_user_id: targetUser.id,
+      from_user_name: currentLead.assigned_salesperson ? `${currentLead.assigned_salesperson.first_name} ${currentLead.assigned_salesperson.last_name}` : 'Unassigned',
+      to_user_name: `${targetUser.first_name} ${targetUser.last_name}`,
+      transferred_at: new Date().toISOString(),
+      notes: 'Auto-assigned via Round-Robin Queue',
+    };
+
+    const existingHistory = currentLead.transfer_history || [];
+    const updated = await this.update(leadId, {
+      assigned_to: targetUser.id,
+      stage: LeadStage.ASSIGNED,
+      previous_owner_id: prevOwnerId,
+      transfer_history: [...existingHistory, transferItem],
+    } as any);
+
+    // Activity log
+    await this.addActivity(orgId, leadId, targetUser.id, {
+      type: LeadActivityType.NOTE,
+      description: `Lead auto-assigned to telecaller ${targetUser.first_name} ${targetUser.last_name} via Round-Robin.`,
+      outcome: 'ROUND_ROBIN_ASSIGNMENT',
+      activity_date: new Date().toISOString(),
+    });
+
+    // Notify receiving telecaller
+    try {
+      await notificationsService.create(orgId, targetUser.id, {
+        type: NotificationType.LEAD_ASSIGNED,
+        title: 'New Lead Assigned (Round-Robin)',
+        message: `You have been assigned lead: ${currentLead.title || 'Inbound Inquiry'}.`,
+        link_url: '/leads',
+        entity_type: 'lead',
+        entity_id: leadId,
+      });
+    } catch (e) {
+      console.warn('Could not dispatch assignment notification:', e);
+    }
+
+    return { lead: updated, assignedUser: targetUser };
+  },
+
+  // Automation 1: Manager-controlled queue assignment
+  async assignManagerQueue(orgId: string, leadId: string, assignedToId: string, notes?: string): Promise<Lead> {
+    const currentLead = await this.getById(leadId);
+    const prevOwnerId = currentLead.assigned_to;
+
+    const transferItem = {
+      from_user_id: prevOwnerId,
+      to_user_id: assignedToId,
+      transferred_at: new Date().toISOString(),
+      notes: notes || 'Assigned via Manager Controlled Queue',
+    };
+
+    const existingHistory = currentLead.transfer_history || [];
+    const updated = await this.update(leadId, {
+      assigned_to: assignedToId,
+      stage: LeadStage.ASSIGNED,
+      previous_owner_id: prevOwnerId,
+      transfer_history: [...existingHistory, transferItem],
+    } as any);
+
+    await this.addActivity(orgId, leadId, assignedToId, {
+      type: LeadActivityType.NOTE,
+      description: `Assigned to user by manager${notes ? ': ' + notes : ''}. Single active owner verified.`,
+      outcome: 'MANAGER_QUEUE_ASSIGNMENT',
+      activity_date: new Date().toISOString(),
+    });
+
+    try {
+      await notificationsService.create(orgId, assignedToId, {
+        type: NotificationType.LEAD_ASSIGNED,
+        title: 'Lead Assigned by Manager',
+        message: `You have been assigned lead: ${currentLead.title || 'Inbound Opportunity'}.`,
+        link_url: '/leads',
+        entity_type: 'lead',
+        entity_id: leadId,
+      });
+    } catch (e) {
+      console.warn('Could not send notification:', e);
+    }
+
+    return updated;
+  },
+
+  // Automation 4, 5 & 6: Qualified handover to sales queue with required notes and timestamp
+  async transferToSalesQueue(
+    orgId: string,
+    leadId: string,
+    telecallerId: string,
+    receivingSalesExecId: string,
+    handoverNotes: string
+  ): Promise<Lead> {
+    if (!handoverNotes || !handoverNotes.trim()) {
+      throw new Error('Mandatory handover notes are required before transferring lead to sales queue.');
+    }
+
+    const timestamp = new Date().toISOString();
+    const currentLead = await this.getById(leadId);
+
+    const transferItem = {
+      from_user_id: telecallerId,
+      to_user_id: receivingSalesExecId,
+      transferred_at: timestamp,
+      notes: handoverNotes.trim(),
+    };
+
+    const existingHistory = currentLead.transfer_history || [];
+
+    // Update lead: strict single active owner (assigned_to = receivingSalesExecId), previous_owner stored
+    const updated = await this.update(leadId, {
+      stage: LeadStage.QUALIFIED_HANDOVER,
+      assigned_to: receivingSalesExecId,
+      previous_owner_id: telecallerId,
+      handover_notes: handoverNotes.trim(),
+      handover_timestamp: timestamp,
+      incentive_category: 'QUALIFIED_HANDOFF',
+      transfer_history: [...existingHistory, transferItem],
+    } as any);
+
+    // Record activity with handover timestamp
+    await this.addActivity(orgId, leadId, telecallerId, {
+      type: LeadActivityType.NOTE,
+      description: `Qualified Sales Handover completed. Handover notes: "${handoverNotes.trim()}". Transferred to sales queue.`,
+      outcome: 'QUALIFIED_HANDOVER',
+      activity_date: timestamp,
+    });
+
+    // Notify receiving sales executive
+    try {
+      await notificationsService.create(orgId, receivingSalesExecId, {
+        type: NotificationType.LEAD_ASSIGNED,
+        title: 'New Qualified Lead Handover',
+        message: `Qualified lead handed over to you: "${currentLead.title || 'Deal'}". Notes: ${handoverNotes.slice(0, 80)}...`,
+        link_url: '/leads',
+        entity_type: 'lead',
+        entity_id: leadId,
+      });
+    } catch (e) {
+      console.warn('Could not dispatch handover notification:', e);
+    }
+
+    return updated;
+  },
+
+  // Automation 7: Payment verification, mark converted & create onboarding task
+  async verifyPaymentAndConvert(
+    orgId: string,
+    leadId: string,
+    telecallerId: string,
+    payload: {
+      verificationRef: string;
+      packagePurchased?: string;
+      amount?: number;
+    }
+  ): Promise<Lead> {
+    if (!payload.verificationRef || !payload.verificationRef.trim()) {
+      throw new Error('Payment verification reference (UTR / Gateway Ref) is mandatory to mark converted.');
+    }
+
+    const timestamp = new Date().toISOString();
+    const currentLead = await this.getById(leadId);
+
+    // 1. Update lead status to CONVERTED
+    const updated = await this.update(leadId, {
+      stage: LeadStage.CONVERTED,
+      payment_verification_ref: payload.verificationRef.trim(),
+      payment_link_package: payload.packagePurchased || 'Approved Offer',
+      payment_link_amount: payload.amount || currentLead.expected_value || 0,
+      conversion_attribution_user_id: telecallerId,
+      incentive_category: 'DIRECT_SALE',
+    } as any);
+
+    // 2. Mark customer status as CUSTOMER
+    if (currentLead.customer_id) {
+      try {
+        await customersService.update(currentLead.customer_id, {
+          status: CustomerStatus.CUSTOMER,
+        } as any);
+      } catch (e) {
+        console.warn('Could not update customer status to CUSTOMER:', e);
+      }
+    }
+
+    // 3. Create Client-Onboarding Task / Activity automatically
+    await this.addActivity(orgId, leadId, telecallerId, {
+      type: LeadActivityType.NOTE,
+      description: `AUTOMATED ONBOARDING TASK CREATED: Payment verified [Ref: ${payload.verificationRef.trim()}]. Package: ${payload.packagePurchased || 'Standard'}. Amount: ₹${payload.amount || currentLead.expected_value || 0}. Client onboarding kickoff sequence initiated.`,
+      outcome: 'PAYMENT_VERIFIED_CONVERTED',
+      activity_date: timestamp,
+    });
+
+    return updated;
   }
 };

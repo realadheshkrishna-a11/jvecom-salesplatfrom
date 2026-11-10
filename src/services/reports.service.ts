@@ -1,8 +1,8 @@
 import Papa from 'papaparse';
 import { supabase } from '@/lib/supabase';
 import { localDb, isLocalStorageMode } from '@/lib/localDb';
-import type { Sale, Profile, Customer, Team } from '@/types';
-import { PaymentStatus } from '@/types';
+import type { Sale, Profile, Customer, Team, Lead, LeadActivity } from '@/types';
+import { PaymentStatus, LeadStage, LeadActivityType } from '@/types';
 
 export interface ReportFilterOptions {
   dateFrom?: string;
@@ -151,6 +151,103 @@ export const reportsService = {
         DealsClosed: userSales.length,
         TotalRevenue: totalRev,
         AverageDealSize: userSales.length > 0 ? Math.round(totalRev / userSales.length) : 0,
+      };
+    });
+  },
+
+  async getEmployeeActivityAndIncentiveReport(orgId: string) {
+    if (isLocalStorageMode()) {
+      const profiles = localDb.getAll<Profile>('profiles').filter(p => !orgId || p.organization_id === orgId);
+      const leads = localDb.getLeads(orgId);
+      const activities = localDb.getAll<LeadActivity>('lead_activities');
+      const teams = localDb.getAll<Team>('teams');
+
+      return profiles.map(p => {
+        const team = teams.find(t => t.id === p.team_id);
+        const userCalls = activities.filter(a => a.user_id === p.id && a.type === LeadActivityType.CALL).length;
+        const userLeads = leads.filter(l => l.assigned_to === p.id);
+        const directConversions = leads.filter(
+          l => (l.conversion_attribution_user_id === p.id || l.assigned_to === p.id) &&
+               (l.stage === LeadStage.CONVERTED || l.stage === LeadStage.WON || l.incentive_category === 'DIRECT_SALE')
+        ).length;
+        const qualifiedHandoffs = leads.filter(
+          l => (l.previous_owner_id === p.id || l.assigned_to === p.id) &&
+               (l.stage === LeadStage.QUALIFIED_HANDOVER || l.incentive_category === 'QUALIFIED_HANDOFF')
+        ).length;
+
+        const directSaleIncentive = directConversions * 2000;
+        const qualifiedHandoffIncentive = qualifiedHandoffs * 500;
+        const totalIncentive = directSaleIncentive + qualifiedHandoffIncentive;
+        const conversionRate = userLeads.length > 0 ? Math.round((directConversions / userLeads.length) * 100) : 0;
+
+        return {
+          Employee: `${p.first_name} ${p.last_name}`,
+          Email: p.email,
+          Role: p.role,
+          Team: team?.name || 'Inbound Sales',
+          CallsLogged: userCalls,
+          LeadsHandled: userLeads.length,
+          QualifiedHandovers: qualifiedHandoffs,
+          DirectConversions: directConversions,
+          DirectSaleIncentive: directSaleIncentive,
+          QualifiedHandoffIncentive: qualifiedHandoffIncentive,
+          TotalIncentiveEarned: totalIncentive,
+          ConversionRate: `${conversionRate}%`,
+        };
+      });
+    }
+
+    const { data: profiles, error: pError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, email, role, team:teams(name)')
+      .eq('organization_id', orgId);
+
+    if (pError) throw pError;
+
+    const { data: leads, error: lError } = await supabase
+      .from('leads')
+      .select('assigned_to, previous_owner_id, stage, conversion_attribution_user_id, incentive_category')
+      .eq('organization_id', orgId);
+
+    if (lError) throw lError;
+
+    const { data: activities, error: aError } = await supabase
+      .from('lead_activities')
+      .select('user_id, type')
+      .eq('organization_id', orgId);
+
+    if (aError) throw aError;
+
+    return (profiles || []).map(p => {
+      const userCalls = (activities || []).filter(a => a.user_id === p.id && a.type === LeadActivityType.CALL).length;
+      const userLeads = (leads || []).filter(l => l.assigned_to === p.id);
+      const directConversions = (leads || []).filter(
+        l => (l.conversion_attribution_user_id === p.id || l.assigned_to === p.id) &&
+             (l.stage === LeadStage.CONVERTED || l.stage === LeadStage.WON || l.incentive_category === 'DIRECT_SALE')
+      ).length;
+      const qualifiedHandoffs = (leads || []).filter(
+        l => (l.previous_owner_id === p.id || l.assigned_to === p.id) &&
+             (l.stage === LeadStage.QUALIFIED_HANDOVER || l.incentive_category === 'QUALIFIED_HANDOFF')
+      ).length;
+
+      const directSaleIncentive = directConversions * 2000;
+      const qualifiedHandoffIncentive = qualifiedHandoffs * 500;
+      const totalIncentive = directSaleIncentive + qualifiedHandoffIncentive;
+      const conversionRate = userLeads.length > 0 ? Math.round((directConversions / userLeads.length) * 100) : 0;
+
+      return {
+        Employee: `${p.first_name} ${p.last_name}`,
+        Email: p.email,
+        Role: p.role,
+        Team: (p.team as unknown as { name: string })?.name || 'Inbound Sales',
+        CallsLogged: userCalls,
+        LeadsHandled: userLeads.length,
+        QualifiedHandovers: qualifiedHandoffs,
+        DirectConversions: directConversions,
+        DirectSaleIncentive: directSaleIncentive,
+        QualifiedHandoffIncentive: qualifiedHandoffIncentive,
+        TotalIncentiveEarned: totalIncentive,
+        ConversionRate: `${conversionRate}%`,
       };
     });
   }
