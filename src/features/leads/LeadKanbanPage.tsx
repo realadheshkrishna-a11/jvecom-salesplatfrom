@@ -55,6 +55,15 @@ import {
   Award,
 } from 'lucide-react';
 
+function getErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message) return err.message;
+  if (err && typeof err === 'object' && 'message' in err) {
+    const msg = (err as { message?: unknown }).message;
+    if (typeof msg === 'string' && msg.trim()) return msg;
+  }
+  return fallback;
+}
+
 const STAGES = [
   { id: LeadStage.NEW, label: 'New Inquiries', color: 'border-t-blue-500', badge: 'bg-blue-500/10 text-blue-600 dark:text-blue-400' },
   { id: LeadStage.CONTACTED, label: 'Contacted', color: 'border-t-indigo-500', badge: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' },
@@ -173,6 +182,9 @@ export function LeadKanbanPage() {
 
   // Quick stage move
   const handleStageMove = async (leadId: string, nextStage: LeadStage) => {
+    const previousLeads = leads;
+    const previousSelected = selectedLead;
+
     // Optimistic UI update
     setLeads((prev) =>
       prev.map((l) => (l.id === leadId ? { ...l, stage: nextStage } : l))
@@ -182,13 +194,33 @@ export function LeadKanbanPage() {
     }
 
     try {
-      await leadsService.updateStage(leadId, nextStage, profile?.id || 'admin-user');
+      const updatedLead = await leadsService.updateStage(leadId, nextStage, profile?.id || '');
+      setLeads((prev) =>
+        prev.map((l) => (l.id === leadId ? updatedLead : l))
+      );
+      if (selectedLead && selectedLead.id === leadId) {
+        setSelectedLead(updatedLead);
+      }
       success('Stage Updated', `Moved to ${nextStage}`);
-      // Refresh background data
-      const updated = await leadsService.getAllForBoard(orgId);
-      setLeads(updated);
-    } catch {
-      toastError('Update Failed', 'Could not sync stage change to server');
+
+      // Refresh background data without failing the stage update if refresh encounters a transient issue
+      try {
+        const updated = await leadsService.getAllForBoard(orgId);
+        setLeads(updated);
+        if (detailOpen && selectedLead?.id === leadId) {
+          const acts = await leadsService.getActivities(leadId);
+          setActivities(acts);
+        }
+      } catch (refreshErr) {
+        console.warn('Background lead board refresh failed after stage update:', refreshErr);
+      }
+    } catch (err) {
+      console.error('Failed to update lead stage:', err);
+      setLeads(previousLeads);
+      if (previousSelected && previousSelected.id === leadId) {
+        setSelectedLead(previousSelected);
+      }
+      toastError('Update Failed', getErrorMessage(err, 'Could not sync stage change to server'));
     }
   };
 
@@ -282,7 +314,7 @@ export function LeadKanbanPage() {
     } catch (err: unknown) {
       toastError(
         'Failed to Create Opportunity',
-        err instanceof Error ? err.message : 'Please check input fields and retry'
+        getErrorMessage(err, 'Please check input fields and retry')
       );
     } finally {
       setCreateSubmitting(false);
@@ -299,7 +331,7 @@ export function LeadKanbanPage() {
       const newAct = await leadsService.addActivity(
         orgId,
         selectedLead.id,
-        profile?.id || 'admin-user',
+        profile?.id || '',
         {
           type: actType,
           description: actDescription.trim(),
@@ -310,8 +342,8 @@ export function LeadKanbanPage() {
       setActivities((prev) => [newAct, ...prev]);
       setActDescription('');
       success('Activity Logged', `${actType} record logged successfully`);
-    } catch {
-      toastError('Failed', 'Could not record activity');
+    } catch (err) {
+      toastError('Failed', getErrorMessage(err, 'Could not record activity'));
     } finally {
       setActSubmitting(false);
     }
@@ -329,7 +361,7 @@ export function LeadKanbanPage() {
       setFuSubmitting(true);
       const newFu = await leadsService.createFollowUp(
         orgId,
-        profile?.id || 'admin-user',
+        profile?.id || '',
         {
           lead_id: selectedLead.id,
           due_date: fuDate,
@@ -342,8 +374,8 @@ export function LeadKanbanPage() {
       setFuDate('');
       setFuNotes('');
       success('Follow-up Scheduled', `Reminder set for ${fuDate}`);
-    } catch {
-      toastError('Failed', 'Could not schedule follow-up');
+    } catch (err) {
+      toastError('Failed', getErrorMessage(err, 'Could not schedule follow-up'));
     } finally {
       setFuSubmitting(false);
     }
@@ -358,8 +390,8 @@ export function LeadKanbanPage() {
       setDetailOpen(false);
       setSelectedLead(null);
       success('Deal Deleted', 'Opportunity removed from pipeline');
-    } catch {
-      toastError('Failed', 'Could not delete deal');
+    } catch (err) {
+      toastError('Failed', getErrorMessage(err, 'Could not delete deal'));
     }
   };
 

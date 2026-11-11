@@ -4,7 +4,6 @@ import { ToastProvider } from '@/components/ui/toast';
 import { ProtectedRoute } from '@/routes/ProtectedRoute';
 import { ModuleGuard, HomeRedirect } from '@/routes/ModuleGuard';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { ComingSoon } from '@/components/common/ComingSoon';
 
 // Auth Pages
 import { LoginPage } from '@/features/auth/LoginPage';
@@ -50,22 +49,6 @@ import { NotificationListPage } from '@/features/notifications/NotificationListP
 import { AuditLogPage } from '@/features/audit/AuditLogPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 
-const comingSoonTitleMap: Record<string, string> = {
-  '/leaderboard': 'Leaderboard',
-  '/gamification': 'XP & Achievements',
-  '/commissions': 'Commissions',
-  '/bonuses': 'Bonuses',
-  '/analytics': 'Analytics',
-  '/reports': 'Reports',
-  '/notifications': 'Notifications',
-  '/audit-logs': 'Audit Logs',
-  '/settings': 'Settings',
-};
-
-function ComingSoonRoute({ title }: { title: string }) {
-  return <ComingSoon title={title} />;
-}
-
 export function App() {
   return (
     <BrowserRouter>
@@ -99,18 +82,18 @@ export function App() {
 
                 {/* Quota Targets & Gamification */}
                 <Route path="/targets" element={<TargetListPage />} />
-                <Route path="/leaderboard" element={<ComingSoonRoute title={comingSoonTitleMap['/leaderboard']} />} />
-                <Route path="/gamification" element={<ComingSoonRoute title={comingSoonTitleMap['/gamification']} />} />
-                <Route path="/achievements" element={<ComingSoonRoute title={comingSoonTitleMap['/achievements'] ?? 'Achievements'} />} />
+                <Route path="/leaderboard" element={<LeaderboardPage />} />
+                <Route path="/gamification" element={<XPPage />} />
+                <Route path="/achievements" element={<AchievementsPage />} />
 
                 {/* Compensation & Incentives */}
-                <Route path="/commissions" element={<ComingSoonRoute title={comingSoonTitleMap['/commissions']} />} />
-                <Route path="/bonuses" element={<ComingSoonRoute title={comingSoonTitleMap['/bonuses']} />} />
+                <Route path="/commissions" element={<CommissionListPage />} />
+                <Route path="/bonuses" element={<BonusListPage />} />
                 <Route path="/compensation" element={<CompensationDashboardPage />} />
 
                 {/* Analytics & Business Intelligence */}
-                <Route path="/analytics" element={<ComingSoonRoute title={comingSoonTitleMap['/analytics']} />} />
-                <Route path="/reports" element={<ComingSoonRoute title={comingSoonTitleMap['/reports']} />} />
+                <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/reports" element={<ReportsPage />} />
 
                 {/* People & Teams */}
                 <Route path="/employees" element={<EmployeeListPage />} />
@@ -118,9 +101,9 @@ export function App() {
                 <Route path="/teams" element={<TeamListPage />} />
 
                 {/* Notifications, Security Audit & Settings */}
-                <Route path="/notifications" element={<ComingSoonRoute title={comingSoonTitleMap['/notifications']} />} />
-                <Route path="/audit-logs" element={<ComingSoonRoute title={comingSoonTitleMap['/audit-logs']} />} />
-                <Route path="/settings" element={<ComingSoonRoute title={comingSoonTitleMap['/settings']} />} />
+                <Route path="/notifications" element={<NotificationListPage />} />
+                <Route path="/audit-logs" element={<AuditLogPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
                 </Route>
               </Route>
             </Route>

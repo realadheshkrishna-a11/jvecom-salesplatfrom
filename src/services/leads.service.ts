@@ -11,6 +11,23 @@ import type { LeadInput, LeadActivityInput, FollowUpInput } from '@/schemas';
 import { notificationsService } from './notifications.service';
 import { customersService } from './customers.service';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isUuid(value?: string | null): value is string {
+  return typeof value === 'string' && UUID_RE.test(value);
+}
+
+async function resolveActorUuid(userId?: string): Promise<string | undefined> {
+  if (isUuid(userId)) return userId;
+  try {
+    const { data } = await supabase.auth.getUser();
+    if (isUuid(data.user?.id)) return data.user.id;
+  } catch {
+    // Ignore auth lookup errors when logging secondary activity
+  }
+  return undefined;
+}
+
 interface LeadFilters {
   search?: string;
   stage?: LeadStage | string;
@@ -229,10 +246,20 @@ export const leadsService = {
       return updated;
     }
 
-    // 1. Get current lead
-    const current = await this.getById(id);
+    // 1. Fetch previous stage lightly (non-fatal if pre-fetch fails)
+    let previousStage: string | undefined;
+    try {
+      const { data: current } = await supabase
+        .from('leads')
+        .select('stage')
+        .eq('id', id)
+        .maybeSingle();
+      previousStage = current?.stage as string | undefined;
+    } catch {
+      // Proceed with update even if pre-fetch fails
+    }
 
-    // 2. Update stage
+    // 2. Update stage on leads table
     const { data, error } = await supabase
       .from('leads')
       .update({
@@ -246,19 +273,35 @@ export const leadsService = {
         assigned_salesperson:profiles!leads_assigned_to_fkey(id, first_name, last_name, email),
         product:products(*)
       `)
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      throw new Error(error.message || 'Failed to update lead stage');
+    }
+    if (!data) {
+      throw new Error('Lead not found or permission denied by server security policy.');
+    }
 
-    // 3. Log activity for stage transition
-    await this.addActivity(current.organization_id, id, userId, {
-      type: LeadActivityType.NOTE,
-      description: `Stage changed from ${current.stage} to ${stage}${notes ? ': ' + notes : ''}`,
-      outcome: 'STAGE_CHANGE',
-      activity_date: new Date().toISOString(),
-    });
+    const updatedLead = data as unknown as Lead;
 
-    return data as unknown as Lead;
+    // 3. Log activity for stage transition (non-blocking so secondary logging errors don't abort a successful stage change)
+    const actorId = await resolveActorUuid(userId);
+    if (actorId && updatedLead.organization_id) {
+      try {
+        await this.addActivity(updatedLead.organization_id, id, actorId, {
+          type: LeadActivityType.NOTE,
+          description: previousStage
+            ? `Stage changed from ${previousStage} to ${stage}${notes ? ': ' + notes : ''}`
+            : `Stage moved to ${stage}${notes ? ': ' + notes : ''}`,
+          outcome: 'STAGE_CHANGE',
+          activity_date: new Date().toISOString(),
+        });
+      } catch (actErr) {
+        console.warn('[leadsService.updateStage] Stage updated, but activity log failed:', actErr);
+      }
+    }
+
+    return updatedLead;
   },
 
   async getActivities(leadId: string): Promise<LeadActivity[]> {
@@ -281,12 +324,17 @@ export const leadsService = {
       return localDb.addLeadActivity(orgId, leadId, userId, input);
     }
 
+    const actorId = await resolveActorUuid(userId);
+    if (!actorId) {
+      throw new Error('Signed-in user profile ID is unavailable for activity logging.');
+    }
+
     const { data, error } = await supabase
       .from('lead_activities')
       .insert({
         organization_id: orgId,
         lead_id: leadId,
-        user_id: userId,
+        user_id: actorId,
         type: input.type,
         description: input.description || null,
         outcome: input.outcome || null,
@@ -342,12 +390,17 @@ export const leadsService = {
       return localDb.createFollowUp(orgId, userId, input);
     }
 
+    const actorId = await resolveActorUuid(userId);
+    if (!actorId) {
+      throw new Error('Signed-in user profile ID is unavailable for scheduling follow-ups.');
+    }
+
     const { data, error } = await supabase
       .from('follow_ups')
       .insert({
         organization_id: orgId,
         lead_id: input.lead_id,
-        user_id: userId,
+        user_id: actorId,
         due_date: input.due_date,
         due_time: input.due_time || null,
         reminder: input.reminder || false,
