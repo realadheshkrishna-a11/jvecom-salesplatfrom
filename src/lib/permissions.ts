@@ -11,9 +11,8 @@ import type { Profile } from '@/types';
 
 export type ModuleId =
   | 'dashboard' | 'crm' | 'sales' | 'b2b-orders' | 'products' | 'customers'
-  | 'mail' | 'targets' | 'leaderboard' | 'gamification' | 'commissions'
-  | 'bonuses' | 'analytics' | 'employees' | 'teams' | 'reports'
-  | 'notifications' | 'audit-logs' | 'settings';
+  | 'mail' | 'targets' | 'leaderboard' | 'gamification'
+  | 'employees' | 'teams';
 
 export interface ModuleDef {
   id: ModuleId;
@@ -38,15 +37,8 @@ export const MODULES: ModuleDef[] = [
   { id: 'targets', label: 'Targets', description: 'Quotas & goals', path: '/targets', paths: ['/targets'] },
   { id: 'leaderboard', label: 'Leaderboard', description: 'Rankings', path: '/leaderboard', paths: ['/leaderboard'] },
   { id: 'gamification', label: 'XP & Achievements', description: 'Levels & badges', path: '/gamification', paths: ['/gamification', '/achievements'] },
-  { id: 'commissions', label: 'Commissions', description: 'Earnings', path: '/commissions', paths: ['/commissions', '/compensation'] },
-  { id: 'bonuses', label: 'Bonuses', description: 'Incentives', path: '/bonuses', paths: ['/bonuses'] },
-  { id: 'analytics', label: 'Analytics', description: 'Business insights', path: '/analytics', paths: ['/analytics'] },
   { id: 'employees', label: 'Employees', description: 'Invite & manage staff', path: '/employees', paths: ['/employees'], sensitive: true },
   { id: 'teams', label: 'Teams', description: 'Team structure', path: '/teams', paths: ['/teams'] },
-  { id: 'reports', label: 'Reports', description: 'Exports & reports', path: '/reports', paths: ['/reports'] },
-  { id: 'notifications', label: 'Notifications', description: 'Alerts', path: '/notifications', paths: ['/notifications'] },
-  { id: 'audit-logs', label: 'Audit Logs', description: 'Security history', path: '/audit-logs', paths: ['/audit-logs'], sensitive: true },
-  { id: 'settings', label: 'Settings', description: 'Preferences', path: '/settings', paths: ['/settings'] },
 ];
 
 const ALL_MODULE_IDS = MODULES.map(m => m.id);
@@ -60,11 +52,11 @@ export const ROLE_DEFAULT_MODULES: Record<UserRole, ModuleId[]> = {
   [UserRole.ORG_ADMIN]: ALL_MODULE_IDS,
   [UserRole.MANAGER]: [
     'dashboard', 'crm', 'sales', 'b2b-orders', 'customers', 'mail', 'targets',
-    'leaderboard', 'analytics', 'teams', 'reports', 'notifications', 'settings',
+    'leaderboard', 'teams',
   ],
   [UserRole.SALES_REP]: [
     'dashboard', 'crm', 'sales', 'b2b-orders', 'customers', 'mail', 'targets',
-    'leaderboard', 'gamification', 'commissions', 'bonuses', 'notifications', 'settings',
+    'leaderboard', 'gamification',
   ],
 };
 

@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { leadsService } from '@/services/leads.service';
 import { customersService } from '@/services/customers.service';
@@ -42,14 +41,12 @@ import {
   User,
   Building,
   CheckCircle2,
-  Trash2,
   TrendingUp,
   MessageSquare,
   Clock,
   ExternalLink,
   Target,
   Sparkles,
-  ShoppingBag,
   Filter,
   Check,
   Award,
@@ -78,7 +75,6 @@ export function LeadKanbanPage() {
   const { organization, profile } = useAuth();
   const orgId = organization?.id || '11111111-1111-1111-1111-111111111111';
   const { success, error: toastError } = useToast();
-  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -379,30 +375,6 @@ export function LeadKanbanPage() {
     } finally {
       setFuSubmitting(false);
     }
-  };
-
-  // Delete lead
-  const handleDeleteLead = async (leadId: string) => {
-    if (!confirm('Are you sure you want to delete this deal opportunity?')) return;
-    try {
-      await leadsService.delete(leadId);
-      setLeads((prev) => prev.filter((l) => l.id !== leadId));
-      setDetailOpen(false);
-      setSelectedLead(null);
-      success('Deal Deleted', 'Opportunity removed from pipeline');
-    } catch (err) {
-      toastError('Failed', getErrorMessage(err, 'Could not delete deal'));
-    }
-  };
-
-  // Convert to sale
-  const handleConvertToSale = (lead: Lead) => {
-    setDetailOpen(false);
-    navigate(
-      `/sales/create?lead_id=${lead.id}&customer_id=${lead.customer_id}${
-        lead.product_id ? `&product_id=${lead.product_id}` : ''
-      }`
-    );
   };
 
   // Filtered leads
@@ -1255,28 +1227,10 @@ export function LeadKanbanPage() {
             </Tabs>
 
             {/* Modal Actions Footer */}
-            <DialogFooter className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-2">
-              <Button
-                variant="destructive"
-                size="sm"
-                className="gap-1.5 text-xs w-full sm:w-auto"
-                onClick={() => handleDeleteLead(selectedLead.id)}
-              >
-                <Trash2 className="w-3.5 h-3.5" /> Delete Deal
+            <DialogFooter className="pt-2 flex items-center justify-end">
+              <Button variant="outline" size="sm" onClick={() => setDetailOpen(false)}>
+                Close
               </Button>
-
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                <Button variant="outline" size="sm" onClick={() => setDetailOpen(false)}>
-                  Close
-                </Button>
-                <Button
-                  size="sm"
-                  className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
-                  onClick={() => handleConvertToSale(selectedLead)}
-                >
-                  <ShoppingBag className="w-3.5 h-3.5" /> Convert to Won Sale
-                </Button>
-              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>

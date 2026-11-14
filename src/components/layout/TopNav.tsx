@@ -1,6 +1,6 @@
 import { useAuth } from '@/lib/auth';
 import { useNavigate } from 'react-router-dom';
-import { Bell, LogOut, Settings, ChevronRight, Mail } from 'lucide-react';
+import { LogOut, ChevronRight, Mail } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,7 +9,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { getInitials } from '@/lib/utils';
 import { ROLE_LABELS } from '@/lib/constants';
-import { useNotificationCount } from '@/hooks/useNotifications';
 
 interface TopNavProps {
   breadcrumbs?: { label: string; path?: string }[];
@@ -18,7 +17,6 @@ interface TopNavProps {
 export function TopNav({ breadcrumbs = [] }: TopNavProps) {
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
-  const { count: unreadCount } = useNotificationCount();
 
   const handleSignOut = async () => {
     try {
@@ -52,22 +50,6 @@ export function TopNav({ breadcrumbs = [] }: TopNavProps) {
           <Mail className="h-4.5 w-4.5" />
         </Button>
 
-        {/* Notifications */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative h-9 w-9"
-          onClick={() => navigate('/notifications')}
-          title="Notifications"
-        >
-          <Bell className="h-4.5 w-4.5" />
-          {unreadCount > 0 && (
-            <span className="absolute 1.5 top-1.5 right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold text-white">
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
-          )}
-        </Button>
-
         {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -95,11 +77,6 @@ export function TopNav({ breadcrumbs = [] }: TopNavProps) {
                 <p className="text-xs text-muted-foreground">{profile?.email || 'Workspace'}</p>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate('/settings')}>
-              <Settings className="h-4 w-4 mr-2" />
-              Settings &amp; Preferences
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive cursor-pointer">
               <LogOut className="h-4 w-4 mr-2" />

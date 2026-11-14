@@ -30,24 +30,10 @@ import { LeaderboardPage } from '@/features/gamification/LeaderboardPage';
 import { XPPage } from '@/features/gamification/XPPage';
 import { AchievementsPage } from '@/features/gamification/AchievementsPage';
 
-// Compensation & Earnings
-import { CommissionListPage } from '@/features/commissions/CommissionListPage';
-import { BonusListPage } from '@/features/bonuses/BonusListPage';
-import { CompensationDashboardPage } from '@/features/compensation/CompensationDashboardPage';
-
-// Analytics & Reports
-import { AnalyticsPage } from '@/features/analytics/AnalyticsPage';
-import { ReportsPage } from '@/features/reports/ReportsPage';
-
 // Employees & Teams
 import { EmployeeListPage } from '@/features/employees/EmployeeListPage';
 import { EmployeeDetailPage } from '@/features/employees/EmployeeDetailPage';
 import { TeamListPage } from '@/features/teams/TeamListPage';
-
-// Notifications, Audit & Settings
-import { NotificationListPage } from '@/features/notifications/NotificationListPage';
-import { AuditLogPage } from '@/features/audit/AuditLogPage';
-import { SettingsPage } from '@/features/settings/SettingsPage';
 
 export function App() {
   return (
@@ -86,24 +72,10 @@ export function App() {
                 <Route path="/gamification" element={<XPPage />} />
                 <Route path="/achievements" element={<AchievementsPage />} />
 
-                {/* Compensation & Incentives */}
-                <Route path="/commissions" element={<CommissionListPage />} />
-                <Route path="/bonuses" element={<BonusListPage />} />
-                <Route path="/compensation" element={<CompensationDashboardPage />} />
-
-                {/* Analytics & Business Intelligence */}
-                <Route path="/analytics" element={<AnalyticsPage />} />
-                <Route path="/reports" element={<ReportsPage />} />
-
                 {/* People & Teams */}
                 <Route path="/employees" element={<EmployeeListPage />} />
                 <Route path="/employees/:id" element={<EmployeeDetailPage />} />
                 <Route path="/teams" element={<TeamListPage />} />
-
-                {/* Notifications, Security Audit & Settings */}
-                <Route path="/notifications" element={<NotificationListPage />} />
-                <Route path="/audit-logs" element={<AuditLogPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
                 </Route>
               </Route>
             </Route>

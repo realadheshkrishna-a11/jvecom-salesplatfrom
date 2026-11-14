@@ -6,9 +6,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
 import {
   LayoutDashboard, Users, UserCircle, Package, ShoppingCart,
-  Target, Trophy, Zap, DollarSign, Gift, BarChart3,
-  FileText, Bell, Shield, Settings, Building2,
-  Briefcase, TrendingUp, ChevronLeft, Menu,
+  Target, Trophy, Zap,
+  Building2, Briefcase, TrendingUp, ChevronLeft, Menu,
   Handshake, UserCog, Mail, Inbox, Send, FileEdit, Trash2,
   ChevronDown, ChevronRight, Truck, LogOut,
 } from 'lucide-react';
@@ -35,15 +34,8 @@ const navItems: NavItem[] = [
   { label: 'Targets', path: '/targets', icon: <Target size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
   { label: 'Leaderboard', path: '/leaderboard', icon: <Trophy size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
   { label: 'XP & Achievements', path: '/gamification', icon: <Zap size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.SALES_REP] },
-  { label: 'Commissions', path: '/commissions', icon: <DollarSign size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.SALES_REP] },
-  { label: 'Bonuses', path: '/bonuses', icon: <Gift size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.SALES_REP] },
-  { label: 'Analytics', path: '/analytics', icon: <BarChart3 size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
   { label: 'Employees', path: '/employees', icon: <Users size={20} />, roles: [UserRole.ORG_ADMIN] },
   { label: 'Teams', path: '/teams', icon: <Briefcase size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
-  { label: 'Reports', path: '/reports', icon: <FileText size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
-  { label: 'Notifications', path: '/notifications', icon: <Bell size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
-  { label: 'Audit Logs', path: '/audit-logs', icon: <Shield size={20} />, roles: [UserRole.ORG_ADMIN] },
-  { label: 'Settings', path: '/settings', icon: <Settings size={20} />, roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.SALES_REP] },
 ];
 
 const superAdminItems: NavItem[] = [
@@ -52,7 +44,6 @@ const superAdminItems: NavItem[] = [
   { label: 'Mail', path: '/mail', icon: <Mail size={20} />, roles: [UserRole.SUPER_ADMIN] },
   { label: 'Organizations', path: '/organizations', icon: <Building2 size={20} />, roles: [UserRole.SUPER_ADMIN] },
   { label: 'Users', path: '/admin/users', icon: <UserCog size={20} />, roles: [UserRole.SUPER_ADMIN] },
-  { label: 'Settings', path: '/settings', icon: <Settings size={20} />, roles: [UserRole.SUPER_ADMIN] },
 ];
 
 export function Sidebar() {

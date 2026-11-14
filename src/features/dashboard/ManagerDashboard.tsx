@@ -14,8 +14,7 @@ import { Link } from 'react-router-dom';
 import {
   IndianRupee, Target, Users, TrendingUp,
   ShieldCheck, ArrowRight, ShoppingCart, Truck, Package, UserCircle,
-  Mail, Trophy, Zap, Award, Flame, BarChart3, Briefcase, FileText,
-  Bell, Settings, Users2,
+  Mail, Trophy, Zap, BarChart3, Briefcase, Users2,
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { salesService } from '@/services/sales.service';
@@ -156,13 +155,6 @@ export function ManagerDashboard() {
               </Link>
             </Button>
           )}
-          {can('reports') && (
-            <Button asChild variant="outline" size="sm" className="gap-2">
-              <Link to="/reports">
-                <FileText className="w-4 h-4" /> Reports
-              </Link>
-            </Button>
-          )}
         </div>
       </PageHeader>
 
@@ -242,15 +234,9 @@ export function ManagerDashboard() {
                   {mod.id === 'targets' && <Target className="w-4 h-4" />}
                   {mod.id === 'leaderboard' && <Trophy className="w-4 h-4" />}
                   {mod.id === 'gamification' && <Zap className="w-4 h-4" />}
-                  {mod.id === 'commissions' && <Award className="w-4 h-4" />}
-                  {mod.id === 'bonuses' && <Flame className="w-4 h-4" />}
-                  {mod.id === 'analytics' && <BarChart3 className="w-4 h-4" />}
                   {mod.id === 'employees' && <Users className="w-4 h-4" />}
                   {mod.id === 'teams' && <Briefcase className="w-4 h-4" />}
-                  {mod.id === 'reports' && <FileText className="w-4 h-4" />}
-                  {mod.id === 'notifications' && <Bell className="w-4 h-4" />}
-                  {mod.id === 'settings' && <Settings className="w-4 h-4" />}
-                  {!['crm', 'sales', 'b2b-orders', 'products', 'customers', 'mail', 'targets', 'leaderboard', 'gamification', 'commissions', 'bonuses', 'analytics', 'employees', 'teams', 'reports', 'notifications', 'settings'].includes(mod.id) && (
+                  {!['crm', 'sales', 'b2b-orders', 'products', 'customers', 'mail', 'targets', 'leaderboard', 'gamification', 'employees', 'teams'].includes(mod.id) && (
                     <ShieldCheck className="w-4 h-4" />
                   )}
                 </div>
@@ -305,7 +291,7 @@ export function ManagerDashboard() {
       )}
 
       {/* Rep Performance Breakdown Table (Shown if sales or teams permitted) */}
-      {(can('sales') || can('teams') || can('analytics')) && (
+      {(can('sales') || can('teams')) && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-2 border-border/60">
             <CardHeader>

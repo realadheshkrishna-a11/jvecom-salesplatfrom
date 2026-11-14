@@ -11,15 +11,13 @@ import { formatCurrency, formatNumber } from '@/lib/utils';
 import { MODULES } from '@/lib/permissions';
 import { Link } from 'react-router-dom';
 import {
-  IndianRupee, Flame, Target, Trophy, Award, Zap,
+  IndianRupee, Target, Trophy, Award, Zap,
   Clock, Plus, ArrowRight, ShieldCheck, Mail, Users,
   ShoppingCart, Truck, Package, UserCircle, Briefcase,
-  BarChart3, FileText, Bell, Settings, CheckCircle2,
+  BarChart3, CheckCircle2,
 } from 'lucide-react';
 import { salesService } from '@/services/sales.service';
 import { targetsService } from '@/services/targets.service';
-import { commissionsService } from '@/services/commissions.service';
-import { bonusesService } from '@/services/bonuses.service';
 import { leadsService } from '@/services/leads.service';
 import { customersService } from '@/services/customers.service';
 import { gamificationService } from '@/services/gamification.service';
@@ -34,8 +32,6 @@ export function SalesRepDashboard() {
   const [dealsClosed, setDealsClosed] = useState(0);
   const [targetAmount, setTargetAmount] = useState(0);
   const [targetAchievement, setTargetAchievement] = useState(0);
-  const [commissionEarned, setCommissionEarned] = useState(0);
-  const [bonusPending, setBonusPending] = useState(0);
   const [activePipelineCount, setActivePipelineCount] = useState(0);
   const [activeCustomersCount, setActiveCustomersCount] = useState(0);
   const [followUps, setFollowUps] = useState<FollowUp[]>([]);
@@ -56,8 +52,6 @@ export function SalesRepDashboard() {
         const [
           salesRes,
           targetRes,
-          commRes,
-          bonusRes,
           leadsRes,
           custRes,
           followUpsRes,
@@ -67,8 +61,6 @@ export function SalesRepDashboard() {
         ] = await Promise.allSettled([
           salesService.getStats(orgId, profile.id),
           targetsService.list(orgId, { user_id: profile.id, is_active: true }),
-          commissionsService.getRecords(orgId, { user_id: profile.id }),
-          bonusesService.getRecords(orgId, { user_id: profile.id }),
           leadsService.list(orgId, { assigned_to: profile.id }),
           customersService.list(orgId),
           leadsService.getFollowUps(orgId, { userId: profile.id, filter: 'today' }),
@@ -95,22 +87,6 @@ export function SalesRepDashboard() {
         } else {
           setTargetAmount(0);
           setTargetAchievement(0);
-        }
-
-        // Commissions
-        if (commRes.status === 'fulfilled' && commRes.value?.data) {
-          const totalComm = commRes.value.data
-            .filter((c: any) => c.status === 'PENDING' || c.status === 'APPROVED')
-            .reduce((sum: number, c: any) => sum + (Number(c.commission_amount) || 0), 0);
-          setCommissionEarned(totalComm);
-        }
-
-        // Bonuses
-        if (bonusRes.status === 'fulfilled' && bonusRes.value?.data) {
-          const totalBonus = bonusRes.value.data
-            .filter((b: any) => b.status === 'PENDING' || b.status === 'APPROVED')
-            .reduce((sum: number, b: any) => sum + (Number(b.bonus_amount) || 0), 0);
-          setBonusPending(totalBonus);
         }
 
         // CRM Leads
@@ -278,24 +254,6 @@ export function SalesRepDashboard() {
             variant="primary"
           />
         )}
-        {can('commissions') && (
-          <StatCard
-            title="Commission Earned"
-            value={formatCurrency(commissionEarned)}
-            description={commissionEarned > 0 ? 'Ready for payout' : 'No pending commissions'}
-            icon={<Award className="w-5 h-5" />}
-            variant="purple"
-          />
-        )}
-        {can('bonuses') && (
-          <StatCard
-            title="Bonus Target"
-            value={formatCurrency(bonusPending)}
-            description={bonusPending > 0 ? 'Eligible at 100% quota' : 'No bonuses accumulated'}
-            icon={<Flame className="w-5 h-5" />}
-            variant="warning"
-          />
-        )}
         {can('crm') && !can('sales') && (
           <StatCard
             title="Active Pipeline"
@@ -354,15 +312,9 @@ export function SalesRepDashboard() {
                     {mod.id === 'targets' && <Target className="w-4 h-4" />}
                     {mod.id === 'leaderboard' && <Trophy className="w-4 h-4" />}
                     {mod.id === 'gamification' && <Zap className="w-4 h-4" />}
-                    {mod.id === 'commissions' && <Award className="w-4 h-4" />}
-                    {mod.id === 'bonuses' && <Flame className="w-4 h-4" />}
-                    {mod.id === 'analytics' && <BarChart3 className="w-4 h-4" />}
                     {mod.id === 'employees' && <Users className="w-4 h-4" />}
                     {mod.id === 'teams' && <Briefcase className="w-4 h-4" />}
-                    {mod.id === 'reports' && <FileText className="w-4 h-4" />}
-                    {mod.id === 'notifications' && <Bell className="w-4 h-4" />}
-                    {mod.id === 'settings' && <Settings className="w-4 h-4" />}
-                    {!['crm', 'sales', 'b2b-orders', 'products', 'customers', 'mail', 'targets', 'leaderboard', 'gamification', 'commissions', 'bonuses', 'analytics', 'employees', 'teams', 'reports', 'notifications', 'settings'].includes(mod.id) && (
+                    {!['crm', 'sales', 'b2b-orders', 'products', 'customers', 'mail', 'targets', 'leaderboard', 'gamification', 'employees', 'teams'].includes(mod.id) && (
                       <ShieldCheck className="w-4 h-4" />
                     )}
                   </div>
